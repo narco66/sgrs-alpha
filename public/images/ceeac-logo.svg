@@ -1,0 +1,128 @@
+<svg width="220" height="220" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond gris clair -->
+  <rect width="220" height="220" fill="url(#bgGradient)"/>
+  
+  <!-- Cercle extérieur blanc avec bordure -->
+  <circle cx="110" cy="110" r="100" fill="#ffffff" stroke="#1e3a8a" stroke-width="2"/>
+  
+  <!-- Bande circulaire blanche pour le texte -->
+  <circle cx="110" cy="110" r="85" fill="#ffffff" stroke="#dc2626" stroke-width="2"/>
+  
+  <!-- Texte CEEAC-ECCAS en rouge en haut -->
+  <text x="110" y="50" fill="#dc2626" font-size="20" font-weight="bold" font-family="Arial, sans-serif" text-anchor="middle" letter-spacing="2px">
+    C.E.E.A.C - E.C.C.A.S
+  </text>
+  
+  <!-- Carte de l'Afrique au centre -->
+  <g transform="translate(110, 110)">
+    <!-- Océan (fond bleu clair) -->
+    <circle r="55" fill="#3b82f6" opacity="0.15"/>
+    
+    <!-- Forme simplifiée de l'Afrique -->
+    <path d="M -25,-15 
+             Q -30,-20 -25,-25
+             L -15,-30
+             Q -5,-35 5,-30
+             Q 15,-25 20,-20
+             Q 25,-15 30,-10
+             Q 35,-5 30,0
+             Q 25,5 20,10
+             Q 15,15 10,20
+             Q 5,25 0,25
+             Q -5,25 -10,20
+             Q -15,15 -20,10
+             Q -25,5 -25,-5
+             Z" 
+          fill="#22c55e" stroke="#16a34a" stroke-width="1.5"/>
+    
+    <!-- Pays colorés -->
+    <!-- RDC (gris clair) -->
+    <ellipse cx="-8" cy="8" rx="10" ry="12" fill="#d1d5db" opacity="0.9"/>
+    
+    <!-- Angola (rouge) -->
+    <ellipse cx="-20" cy="-2" rx="7" ry="9" fill="#dc2626" opacity="0.85"/>
+    
+    <!-- Gabon (jaune) -->
+    <ellipse cx="-16" cy="-12" rx="5" ry="7" fill="#eab308" opacity="0.85"/>
+    
+    <!-- République du Congo (vert foncé) -->
+    <ellipse cx="-12" cy="-17" rx="6" ry="8" fill="#16a34a" opacity="0.85"/>
+    
+    <!-- Cameroun (rose) -->
+    <ellipse cx="-8" cy="-22" rx="7" ry="9" fill="#f472b6" opacity="0.85"/>
+    
+    <!-- République Centrafricaine (blanc) -->
+    <ellipse cx="-3" cy="-17" rx="6" ry="8" fill="#ffffff" opacity="0.95" stroke="#e5e7eb" stroke-width="0.5"/>
+    
+    <!-- Burundi/Rwanda (violet) -->
+    <ellipse cx="8" cy="8" rx="5" ry="7" fill="#a855f7" opacity="0.85"/>
+    
+    <!-- Point rouge (capitale) -->
+    <circle cx="-17" cy="-7" r="1.5" fill="#dc2626"/>
+  </g>
+  
+  <!-- Drapeaux stylisés autour du cercle (12 drapeaux) -->
+  <g opacity="0.75">
+    <!-- Position 1 - Chad (bleu, jaune, rouge vertical) -->
+    <rect x="15" y="25" width="6" height="10" fill="#3b82f6"/>
+    <rect x="15" y="29" width="6" height="3" fill="#eab308"/>
+    <rect x="15" y="32" width="6" height="3" fill="#dc2626"/>
+    
+    <!-- Position 2 - Angola (noir, rouge) -->
+    <rect x="200" y="25" width="6" height="5" fill="#000000"/>
+    <rect x="200" y="30" width="6" height="5" fill="#dc2626"/>
+    
+    <!-- Position 3 - Burundi (vert, rouge, blanc) -->
+    <rect x="205" y="60" width="6" height="10" fill="#16a34a"/>
+    <rect x="205" y="65" width="6" height="5" fill="#dc2626"/>
+    
+    <!-- Position 4 - Cameroun (vert, rouge, jaune vertical) -->
+    <rect x="205" y="140" width="2" height="10" fill="#16a34a"/>
+    <rect x="207" y="140" width="2" height="10" fill="#dc2626"/>
+    <rect x="209" y="140" width="2" height="10" fill="#eab308"/>
+    
+    <!-- Position 5 - République Centrafricaine -->
+    <rect x="200" y="180" width="6" height="10" fill="#3b82f6"/>
+    <rect x="200" y="185" width="6" height="5" fill="#ffffff"/>
+    
+    <!-- Position 6 - République du Congo (vert, jaune, rouge diagonal) -->
+    <rect x="15" y="180" width="6" height="10" fill="#16a34a"/>
+    <rect x="15" y="185" width="6" height="5" fill="#dc2626"/>
+    
+    <!-- Position 7 - Gabon (vert, jaune, bleu horizontal) -->
+    <rect x="5" y="140" width="6" height="3" fill="#16a34a"/>
+    <rect x="5" y="143" width="6" height="3" fill="#eab308"/>
+    <rect x="5" y="146" width="6" height="4" fill="#3b82f6"/>
+    
+    <!-- Position 8 - Guinée Équatoriale -->
+    <rect x="5" y="60" width="2" height="10" fill="#16a34a"/>
+    <rect x="7" y="60" width="2" height="10" fill="#ffffff"/>
+    <rect x="9" y="60" width="2" height="10" fill="#dc2626"/>
+    
+    <!-- Position 9 - RDC (bleu avec étoile) -->
+    <rect x="10" y="95" width="6" height="10" fill="#3b82f6"/>
+    <circle cx="13" cy="100" r="1.5" fill="#eab308"/>
+    
+    <!-- Position 10 - Rwanda (bleu, jaune, vert) -->
+    <rect x="10" y="115" width="6" height="4" fill="#3b82f6"/>
+    <rect x="10" y="119" width="6" height="2" fill="#eab308"/>
+    <rect x="10" y="121" width="6" height="4" fill="#16a34a"/>
+    
+    <!-- Position 11 - São Tomé et Príncipe -->
+    <rect x="200" y="95" width="6" height="3" fill="#16a34a"/>
+    <rect x="200" y="98" width="6" height="4" fill="#eab308"/>
+    <rect x="200" y="102" width="6" height="3" fill="#16a34a"/>
+    
+    <!-- Position 12 - Tchad (similaire à position 1) -->
+    <rect x="205" y="25" width="6" height="10" fill="#3b82f6"/>
+    <rect x="205" y="29" width="6" height="3" fill="#eab308"/>
+    <rect x="205" y="32" width="6" height="3" fill="#dc2626"/>
+  </g>
+</svg>
