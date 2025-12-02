@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Meeting;
 use App\Models\Delegation;
 use App\Models\User;
 
@@ -31,7 +32,20 @@ class DelegationPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['super-admin', 'admin', 'dsi']);
+        if ($user->can('delegations.create')) {
+            return true;
+        }
+
+        // Autoriser aussi le créateur/gestionnaire de la réunion ciblée
+        $meetingId = request()->input('meeting_id');
+        if ($meetingId) {
+            $meeting = Meeting::find($meetingId);
+            if ($meeting && $user->can('update', $meeting)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -40,7 +54,15 @@ class DelegationPolicy
      */
     public function update(User $user, Delegation $delegation): bool
     {
-        return $user->hasAnyRole(['super-admin', 'admin', 'dsi']);
+        if ($user->can('delegations.update')) {
+            return true;
+        }
+
+        if ($delegation->meeting && $user->can('update', $delegation->meeting)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -54,7 +76,11 @@ class DelegationPolicy
             return false;
         }
 
-        return $user->hasAnyRole(['super-admin', 'admin', 'dsi']);
+        if ($user->can('delegations.delete')) {
+            return true;
+        }
+
+        return $delegation->meeting && $user->can('update', $delegation->meeting);
     }
 
     /**

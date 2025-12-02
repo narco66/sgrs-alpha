@@ -15,7 +15,8 @@ class MeetingPolicy
     public function view(User $user, Meeting $meeting): bool
     {
         return $user->can('meetings.view') ||
-               $meeting->created_by === $user->id;
+               $meeting->created_by === $user->id ||
+               $meeting->organizer_id === $user->id;
     }
 
     public function create(User $user): bool
@@ -26,7 +27,8 @@ class MeetingPolicy
     public function update(User $user, Meeting $meeting): bool
     {
         return $user->can('meetings.update') ||
-               $meeting->created_by === $user->id;
+               $meeting->created_by === $user->id ||
+               $meeting->organizer_id === $user->id;
     }
 
     public function delete(User $user, Meeting $meeting): bool

@@ -95,11 +95,28 @@ class Meeting extends Model
         return $this->belongsTo(User::class, 'organizer_id');
     }
 
+    /**
+     * Délégations participantes à la réunion
+     * NOUVELLE RELATION PRINCIPALE : participation par délégations
+     */
+    public function delegations()
+    {
+        return $this->hasMany(Delegation::class, 'meeting_id');
+    }
+
+    /**
+     * Relation legacy pour compatibilité (à déprécier)
+     * @deprecated Utiliser delegations() à la place
+     */
     public function participants()
     {
         return $this->hasMany(MeetingParticipant::class);
     }
 
+    /**
+     * Relation legacy pour compatibilité (à déprécier)
+     * @deprecated Utiliser delegations() à la place
+     */
     public function participantsUsers()
     {
         return $this->belongsToMany(User::class, 'participants_reunions');
@@ -133,10 +150,23 @@ class Meeting extends Model
         return $this->hasOne(OrganizationCommittee::class);
     }
 
-    public function delegations()
+    /**
+     * Cahier des charges entre la CEEAC et le pays hôte
+     */
+    public function termsOfReference()
     {
-        // Les délégations sont liées via la clé meeting_id sur la table delegations
-        return $this->hasMany(Delegation::class, 'meeting_id');
+        return $this->hasOne(TermsOfReference::class, 'meeting_id')
+            ->whereNull('previous_version_id') // Version actuelle uniquement
+            ->latest('version');
+    }
+
+    /**
+     * Toutes les versions du cahier des charges (avec historique)
+     */
+    public function termsOfReferences()
+    {
+        return $this->hasMany(TermsOfReference::class, 'meeting_id')
+            ->orderBy('version', 'desc');
     }
 
     /**

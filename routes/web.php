@@ -113,6 +113,42 @@ Route::middleware(['auth', 'verified'])
         Route::resource('delegations', DelegationController::class);
         Route::get('delegations/{delegation}/pdf', [DelegationController::class, 'exportPdf'])
             ->name('delegations.pdf');
+        Route::post('delegations/{delegation}/confirm', [DelegationController::class, 'confirm'])
+            ->name('delegations.confirm');
+        
+        // Membres de délégation
+        Route::prefix('delegations/{delegation}')->name('delegations.')->group(function () {
+            Route::resource('members', \App\Http\Controllers\DelegationMemberController::class)
+                ->except(['index', 'show']);
+            Route::get('members', [\App\Http\Controllers\DelegationMemberController::class, 'index'])
+                ->name('members.index');
+            Route::patch('members/{member}/status', [\App\Http\Controllers\DelegationMemberController::class, 'updateStatus'])
+                ->name('members.update-status');
+        });
+        
+        // Cahier des charges
+        Route::prefix('meetings/{meeting}')->name('terms-of-reference.')->group(function () {
+            Route::get('terms-of-reference', [\App\Http\Controllers\TermsOfReferenceController::class, 'show'])
+                ->name('show');
+            Route::get('terms-of-reference/create', [\App\Http\Controllers\TermsOfReferenceController::class, 'create'])
+                ->name('create');
+            Route::post('terms-of-reference', [\App\Http\Controllers\TermsOfReferenceController::class, 'store'])
+                ->name('store');
+            Route::get('terms-of-reference/{termsOfReference}/edit', [\App\Http\Controllers\TermsOfReferenceController::class, 'edit'])
+                ->name('edit');
+            Route::put('terms-of-reference/{termsOfReference}', [\App\Http\Controllers\TermsOfReferenceController::class, 'update'])
+                ->name('update');
+            Route::post('terms-of-reference/{termsOfReference}/validate', [\App\Http\Controllers\TermsOfReferenceController::class, 'validateTerms'])
+                ->name('validate');
+            Route::post('terms-of-reference/{termsOfReference}/sign', [\App\Http\Controllers\TermsOfReferenceController::class, 'sign'])
+                ->name('sign');
+            Route::get('terms-of-reference/{termsOfReference}/pdf', [\App\Http\Controllers\TermsOfReferenceController::class, 'exportPdf'])
+                ->name('pdf');
+            Route::get('terms-of-reference/{termsOfReference}/download-signed', [\App\Http\Controllers\TermsOfReferenceController::class, 'downloadSignedDocument'])
+                ->name('download-signed');
+            Route::post('terms-of-reference/{termsOfReference}/version', [\App\Http\Controllers\TermsOfReferenceController::class, 'createVersion'])
+                ->name('create-version');
+        });
         Route::get('organization-committees/{organizationCommittee}/pdf', [OrganizationCommitteeController::class, 'exportPdf'])
             ->name('organization-committees.pdf');
         Route::resource('document-types', \App\Http\Controllers\DocumentTypeController::class);

@@ -93,11 +93,11 @@
             <a href="{{ route('meetings.pdf', $meeting) }}" class="btn btn-sm btn-outline-primary">
                 Export PDF
             </a>
-            @can('update', $meeting)
+                    @can('update', $meeting)
                 <form action="{{ route('meetings.notify', $meeting) }}" method="POST" class="d-inline">
                     @csrf
                     <button type="submit" class="btn btn-sm btn-primary">
-                        <i class="bi bi-envelope me-1"></i> Notifier les participants
+                        <i class="bi bi-envelope me-1"></i> Notifier les délégations
                     </button>
                 </form>
             @endcan
@@ -115,12 +115,7 @@
     </div>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
-@endif
+@include('partials.alerts')
 
 {{-- Zone de workflow : boutons de changement de statut --}}
 @can('update', $meeting)
@@ -326,21 +321,39 @@
         </div>
 
         {{-- Délégations liées --}}
-        @if($meeting->delegations->isNotEmpty())
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h6 class="mb-3">Délégations liées</h6>
-                    <div class="d-flex flex-wrap gap-2">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Délégations participantes</h6>
+                    @can('create', \App\Models\Delegation::class)
+                        <a href="{{ route('delegations.create', ['meeting_id' => $meeting->id]) }}" 
+                           class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle"></i> Ajouter une délégation
+                        </a>
+                    @endcan
+                </div>
+                
+                @if($meeting->delegations->isNotEmpty())
+                    <div class="d-flex flex-wrap gap-2 mb-2">
                         @foreach($meeting->delegations as $delegation)
                             <a href="{{ route('delegations.show', $delegation) }}"
-                               class="badge bg-primary text-decoration-none">
-                                {{ $delegation->title }}
+                               class="badge bg-primary text-decoration-none p-2">
+                                <i class="bi bi-building"></i> {{ $delegation->title }}
+                                @if($delegation->members_count > 0)
+                                    <span class="badge bg-light text-dark ms-1">{{ $delegation->members_count }} membre{{ $delegation->members_count > 1 ? 's' : '' }}</span>
+                                @endif
                             </a>
                         @endforeach
                     </div>
-                </div>
+                @else
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> 
+                        Aucune délégation n'a encore été ajoutée à cette réunion. 
+                        Cliquez sur "Ajouter une délégation" pour commencer.
+                    </div>
+                @endif
             </div>
-        @endif
+        </div>
 
         {{-- Historique des statuts --}}
         @if($histories->isNotEmpty())
@@ -417,7 +430,7 @@
         </div>
     </div>
 
-    {{-- Colonne latérale : participants et informations --}}
+    {{-- Colonne latérale : informations --}}
     <div class="col-lg-4">
         {{-- Section Comité d'Organisation (EF20) --}}
         @if($meeting->organizationCommittee)
@@ -486,67 +499,8 @@
             @endcan
         @endif
 
-        {{-- Section Participants --}}
-        <div class="card shadow-sm border-0 mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="bi bi-people me-2"></i> Participants
-                </h5>
-                <a href="{{ route('meetings.participants.index', $meeting) }}" class="btn btn-sm btn-outline-primary">
-                    Gérer les participants
-                </a>
-            </div>
-            <div class="card-body p-0">
-                @php
-                    try {
-                        $participants = $meeting->participants()->with('user')->get();
-                    } catch (Exception $e) {
-                        $participants = collect();
-                    }
-                @endphp
-
-                @if($participants->isEmpty())
-                    <p class="text-muted text-center py-3 mb-0">
-                        Aucun participant n'est encore enregistré pour cette réunion.
-                    </p>
-                @else
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
-                            <thead class="table-light small text-muted">
-                                <tr>
-                                    <th>Participant</th>
-                                    <th>Rôle</th>
-                                    <th>Statut</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            @foreach($participants as $participant)
-                                @php
-                                    $pUser = optional($participant->user);
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <div class="fw-semibold">
-                                            {{ $pUser->name ?? '—' }}
-                                        </div>
-                                        <div class="small text-muted">
-                                            {{ $pUser->email ?? '' }}
-                                        </div>
-                                    </td>
-                                    <td class="small">
-                                        {{ $participant->role ?: 'Participant' }}
-                                    </td>
-                                    <td class="small">
-                                        {{ $participant->status ? ucfirst($participant->status) : '—' }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </div>
-        </div>
+        {{-- Section Délégations (remplace l'ancienne section Participants) --}}
+        {{-- Les délégations sont déjà affichées dans la section dédiée plus haut --}}
 
         {{-- Informations créateur / méta --}}
         <div class="card shadow-sm border-0">
@@ -568,4 +522,31 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Si un message de succès pour une délégation est affiché, faire défiler vers la section des délégations
+    @php
+        $successMessage = session('success');
+        $isDelegationMessage = $successMessage && (strpos($successMessage, 'Délégation') !== false || strpos($successMessage, 'délégation') !== false);
+    @endphp
+    
+    @if($isDelegationMessage)
+        setTimeout(function() {
+            const delegationsSection = document.getElementById('delegations-section');
+            if (delegationsSection) {
+                delegationsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Ajouter un effet de surbrillance
+                delegationsSection.style.transition = 'box-shadow 0.3s ease';
+                delegationsSection.style.boxShadow = '0 0 20px rgba(13, 110, 253, 0.5)';
+                setTimeout(function() {
+                    delegationsSection.style.boxShadow = '';
+                }, 2000);
+            }
+        }, 500);
+    @endif
+});
+</script>
+@endpush
 @endsection

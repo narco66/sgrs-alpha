@@ -29,8 +29,11 @@
 
 {{-- STATISTIQUES RAPIDES --}}
 @php
-    $totalParticipants = $meetings->sum(function ($meeting) {
-        return $meeting->participants()->count();
+    $totalDelegations = $meetings->sum(function ($meeting) {
+        return $meeting->delegations()->count();
+    });
+    $totalMembers = $meetings->sum(function ($meeting) {
+        return $meeting->delegations()->withCount('members')->get()->sum('members_count');
     });
     $totalMeetings = $meetings->total();
 @endphp
@@ -63,8 +66,8 @@
                         </div>
                     </div>
                     <div class="flex-grow-1 ms-3">
-                        <h5 class="kpi-value mb-0">{{ $totalParticipants }}</h5>
-                        <small class="kpi-label">Participant{{ $totalParticipants > 1 ? 's' : '' }} total</small>
+                        <h5 class="kpi-value mb-0">{{ $totalDelegations }}</h5>
+                        <small class="kpi-label">Délégation{{ $totalDelegations > 1 ? 's' : '' }} total</small>
                     </div>
                 </div>
             </div>
@@ -336,9 +339,22 @@
                             </td>
 
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-people text-muted me-1"></i>
-                                    <span class="fw-semibold">{{ $meeting->participants()->count() }}</span>
+                                <div class="d-flex flex-column">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-building text-muted me-1"></i>
+                                        <span class="fw-semibold">{{ $meeting->delegations_count ?? 0 }}</span>
+                                    </div>
+                                    @php
+                                        $membersCount = 0;
+                                        if ($meeting->relationLoaded('delegations')) {
+                                            $membersCount = $meeting->delegations->sum(function($d) {
+                                                return $d->members_count ?? 0;
+                                            });
+                                        }
+                                    @endphp
+                                    @if($membersCount > 0)
+                                        <small class="text-muted">{{ $membersCount }} membre{{ $membersCount > 1 ? 's' : '' }}</small>
+                                    @endif
                                 </div>
                             </td>
 

@@ -18,13 +18,17 @@ class OrganizationCommittee extends Model
     protected $fillable = [
         'name',
         'description',
+        'host_country',
         'meeting_id',
         'created_by',
         'is_active',
+        'activated_at',
+        'notes',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'activated_at' => 'datetime',
     ];
 
     /**

@@ -23,12 +23,44 @@ class StoreMeetingRequest extends FormRequest
             'configuration'             => ['required', 'in:presentiel,hybride,visioconference'],
             'room_id'                   => ['nullable', 'exists:salles,id'],
             'description'               => ['nullable', 'string', 'max:5000'],
+            'agenda'                    => ['nullable', 'string', 'max:10000'],
             'reminder_minutes_before'   => ['nullable', 'integer', 'min:0', 'max:1440'],
-            'participants'              => ['nullable', 'array'],
-            // Le formulaire envoie des IDs d'utilisateurs : vérifier dans la table utilisateurs
-            'participants.*'            => ['integer', 'exists:utilisateurs,id'],
             'committee_id'              => ['nullable', 'exists:comites,id'],
-            'organization_committee_id' => ['nullable', 'exists:comites_organisation,id'], // EF20
+            
+            // Comité d'organisation (optionnel - peut être ajouté après)
+            'committee_option'          => ['nullable', 'in:existing,new'],
+            'organization_committee_id' => [
+                'nullable', 
+                'required_if:committee_option,existing',
+                'exists:comites_organisation,id'
+            ],
+            'new_committee_name'        => [
+                'nullable', 
+                'required_if:committee_option,new', 
+                'string', 
+                'max:255'
+            ],
+            'new_committee_description' => ['nullable', 'string', 'max:2000'],
+            'new_committee_host_country' => ['nullable', 'string', 'max:255'],
+            
+            // Cahier des charges (optionnel - peut être créé après)
+            'create_terms_of_reference' => ['nullable', 'boolean'],
+            'terms_host_country'        => [
+                'nullable', 
+                'required_with:create_terms_of_reference',
+                'required_if:create_terms_of_reference,1', 
+                'string', 
+                'max:255'
+            ],
+            'terms_signature_date'       => ['nullable', 'date'],
+            'terms_responsibilities_ceeac' => ['nullable', 'string'],
+            'terms_responsibilities_host' => ['nullable', 'string'],
+            'terms_financial_sharing'    => ['nullable', 'string'],
+            'terms_logistical_sharing'    => ['nullable', 'string'],
+            'terms_signed_document'      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            
+            // Statut (pour le bouton "Enregistrer comme brouillon")
+            'status'                    => ['nullable', 'string'],
         ];
     }
 
@@ -41,9 +73,18 @@ class StoreMeetingRequest extends FormRequest
             'date.required'                     => 'La date de la réunion est obligatoire.',
             'time.required'                     => "L'heure de la réunion est obligatoire.",
             'room_id.exists'                    => 'La salle sélectionnée est invalide.',
-            'participants.*.exists'             => 'Un participant sélectionné n’existe pas.',
             'committee_id.exists'               => 'Le comité sélectionné est invalide.',
-            'organization_committee_id.exists'  => 'Le comité d’organisation sélectionné est invalide.',
+            
+            // Messages pour le comité d'organisation
+            'organization_committee_id.required_if' => 'Veuillez sélectionner un comité d\'organisation existant.',
+            'organization_committee_id.required_with' => 'Veuillez sélectionner un comité d\'organisation existant.',
+            'organization_committee_id.exists'  => 'Le comité d\'organisation sélectionné est invalide.',
+            'new_committee_name.required_if'    => 'Le nom du nouveau comité d\'organisation est obligatoire.',
+            'new_committee_name.required_with'   => 'Le nom du nouveau comité d\'organisation est obligatoire.',
+            
+            // Messages pour le cahier des charges
+            'terms_host_country.required_if'    => 'Le pays hôte est obligatoire pour créer un cahier des charges.',
+            'terms_host_country.required_with'   => 'Le pays hôte est obligatoire pour créer un cahier des charges.',
         ];
     }
 }

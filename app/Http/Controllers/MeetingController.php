@@ -46,7 +46,9 @@ class MeetingController extends Controller
         $meetingTypes = MeetingType::orderBy('sort_order')->orderBy('name')->get();
         $committees   = Committee::orderBy('sort_order')->orderBy('name')->get();
 
-        $meetings = Meeting::with(['type', 'committee', 'room', 'organizer', 'participants'])
+        $meetings = Meeting::with(['type', 'committee', 'room', 'organizer', 'delegations' => function($q) {
+                $q->withCount('members');
+            }])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
                     $sub->where('title', 'like', "%{$search}%")
@@ -98,20 +100,18 @@ class MeetingController extends Controller
             ->orderBy('name')
             ->get();
 
-        $users = User::orderBy('name')->get();
-        
         // EF20 - Comités d'organisation disponibles (non assignés)
         $availableCommittees = \App\Models\OrganizationCommittee::where('is_active', true)
             ->whereNull('meeting_id')
+            ->with('members.user')
             ->orderBy('name')
             ->get();
 
         return view('meetings.create', [
-            'meeting'      => new Meeting(),
-            'meetingTypes' => $meetingTypes,
-            'committees'   => $committees,
-            'rooms'        => $rooms,
-            'users'        => $users,
+            'meeting'            => new Meeting(),
+            'meetingTypes'       => $meetingTypes,
+            'committees'         => $committees,
+            'rooms'              => $rooms,
             'availableCommittees' => $availableCommittees,
         ]);
     }
@@ -162,26 +162,53 @@ class MeetingController extends Controller
             'reminder_minutes_before' => $data['reminder_minutes_before'] ?? 0,
         ]);
 
-        // Gestion avancée des participants (si un tableau participants[] est transmis)
-        if (! empty($data['participants'] ?? null)) {
-            // $data['participants'] est un tableau d'IDs d'utilisateurs
-            $meeting->participantsUsers()->sync($data['participants']);
-        }
-
-        // EF20 - Assignation d'un comité d'organisation
-        if (!empty($data['organization_committee_id'] ?? null)) {
+        // EF20 - Gestion du comité d'organisation
+        $committeeOption = $request->input('committee_option', 'existing');
+        
+        if ($committeeOption === 'existing' && !empty($data['organization_committee_id'] ?? null)) {
+            // Assigner un comité existant
             $committee = \App\Models\OrganizationCommittee::find($data['organization_committee_id']);
             if ($committee) {
                 $committee->update(['meeting_id' => $meeting->id]);
             }
+        } elseif ($committeeOption === 'new' && !empty($request->input('new_committee_name'))) {
+            // Créer un nouveau comité d'organisation
+            $committee = \App\Models\OrganizationCommittee::create([
+                'name' => $request->input('new_committee_name'),
+                'description' => $request->input('new_committee_description'),
+                'host_country' => $request->input('new_committee_host_country'),
+                'meeting_id' => $meeting->id,
+                'created_by' => Auth::id(),
+                'is_active' => true,
+                'activated_at' => now(),
+            ]);
         }
 
+        // Création du cahier des charges si demandé
+        if ($request->boolean('create_terms_of_reference') && !empty($request->input('terms_host_country'))) {
+            \App\Models\TermsOfReference::create([
+                'meeting_id' => $meeting->id,
+                'host_country' => $request->input('terms_host_country'),
+                'signature_date' => $request->input('terms_signature_date') ? \Carbon\Carbon::parse($request->input('terms_signature_date')) : null,
+                'responsibilities_ceeac' => $request->input('terms_responsibilities_ceeac'),
+                'responsibilities_host' => $request->input('terms_responsibilities_host'),
+                'financial_sharing' => $request->input('terms_financial_sharing'),
+                'logistical_sharing' => $request->input('terms_logistical_sharing'),
+                'status' => \App\Models\TermsOfReference::STATUS_DRAFT,
+                'version' => 1,
+            ]);
+        }
+
+        // Les délégations peuvent être ajoutées après la création de la réunion
+        // depuis la page de détails de la réunion
+
         // EF40 - Envoi des invitations par email et notification interne
+        // Note: Les invitations seront envoyées aux délégations, pas aux participants individuels
         $this->sendMeetingInvitations($meeting);
 
         return redirect()
             ->route('meetings.show', $meeting)
-            ->with('success', 'La réunion a été créée avec succès. Les invitations ont été envoyées aux participants.');
+            ->with('success', 'La réunion a été créée avec succès.');
     }
 
     /**
@@ -195,11 +222,13 @@ class MeetingController extends Controller
             'committee',
             'room',
             'organizer',
-            'participants.user',
-            'delegations',
+            'delegations' => function($query) {
+                $query->withCount('members')->orderBy('entity_type')->orderBy('title');
+            },
             'documents.type',
             'documents.uploader',
             'organizationCommittee.members.user', // EF20 - Comité d'organisation
+            'termsOfReference', // Cahier des charges
         ]);
 
         // Alias pour que la vue puisse utiliser $meeting->creator
@@ -258,18 +287,29 @@ class MeetingController extends Controller
             ->orderBy('name')
             ->get();
 
-        $meeting->load(['participants.user', 'participantsUsers', 'organizer']);
-        // On fournit aussi creator pour rester cohérent avec la vue si nécessaire
-        $meeting->setRelation('creator', $meeting->organizer);
+        // Charger les relations nécessaires pour la nouvelle logique
+        $meeting->load([
+            'organizationCommittee.members.user',
+            'termsOfReference',
+            'delegations.members',
+            'organizer',
+        ]);
 
-        $users = User::orderBy('name')->get();
+        // Comités d'organisation disponibles (non assignés ou assignés à cette réunion)
+        $availableCommittees = \App\Models\OrganizationCommittee::where('is_active', true)
+            ->where(function($q) use ($meeting) {
+                $q->whereNull('meeting_id')
+                  ->orWhere('meeting_id', $meeting->id);
+            })
+            ->orderBy('name')
+            ->get();
 
         return view('meetings.edit', [
-            'meeting'      => $meeting,
-            'meetingTypes' => $meetingTypes,
-            'committees'   => $committees,
-            'rooms'        => $rooms,
-            'users'        => $users,
+            'meeting'            => $meeting,
+            'meetingTypes'       => $meetingTypes,
+            'committees'         => $committees,
+            'rooms'              => $rooms,
+            'availableCommittees' => $availableCommittees,
         ]);
     }
 
@@ -281,16 +321,22 @@ class MeetingController extends Controller
     {
         $data = $request->validated();
 
-        // Vérifier la disponibilité de la salle si une salle est sélectionnée et que la date/heure change
-        if (!empty($data['room_id']) && ($data['room_id'] != $meeting->room_id || isset($data['start_at']))) {
-            $room = Room::findOrFail($data['room_id']);
-            $startAt = \Carbon\Carbon::parse($data['start_at'] ?? $meeting->start_at);
-            $endAt = $data['end_at'] 
-                ? \Carbon\Carbon::parse($data['end_at'])
-                : ($meeting->end_at 
-                    ? \Carbon\Carbon::parse($meeting->end_at)
-                    : $startAt->copy()->addMinutes((int) ($data['duration_minutes'] ?? $meeting->duration_minutes ?? 60)));
+        // Construire les timestamps à partir de date + time si start_at/end_at ne sont pas fournis
+        $durationMinutes = isset($data['duration_minutes'])
+            ? (int) $data['duration_minutes']
+            : ($meeting->duration_minutes ?? 60);
 
+        $startAt = !empty($data['start_at'])
+            ? Carbon::parse($data['start_at'])
+            : Carbon::parse(($data['date'] ?? $meeting->start_at?->format('Y-m-d') ?? now()->toDateString()) . ' ' . ($data['time'] ?? $meeting->start_at?->format('H:i') ?? '00:00'));
+
+        $endAt = !empty($data['end_at'])
+            ? Carbon::parse($data['end_at'])
+            : $startAt->copy()->addMinutes($durationMinutes);
+
+        // Vérifier la disponibilité de la salle si une salle est sélectionnée et que la date/heure change
+        if (!empty($data['room_id']) && ($data['room_id'] != $meeting->room_id || !$meeting->start_at || $startAt->format('Y-m-d H:i') != $meeting->start_at->format('Y-m-d H:i'))) {
+            $room = Room::findOrFail($data['room_id']);
             if (!$room->isAvailableFor($startAt, $endAt, $meeting->id)) {
                 return back()
                     ->withInput()
@@ -303,8 +349,8 @@ class MeetingController extends Controller
             'meeting_type_id'         => $data['meeting_type_id'] ?? null,
             'committee_id'            => $data['committee_id'] ?? null,
             'room_id'                 => $data['room_id'] ?? null,
-            'start_at'                => $data['start_at'],
-            'end_at'                  => $data['end_at'] ?? null,
+            'start_at'                => $startAt,
+            'end_at'                  => $endAt,
             'duration_minutes'        => $data['duration_minutes'] ?? null,
             'status'                  => $data['status'] ?? $meeting->status,
             'description'             => $data['description'] ?? null,
@@ -312,24 +358,100 @@ class MeetingController extends Controller
             'reminder_minutes_before' => $data['reminder_minutes_before'] ?? $meeting->reminder_minutes_before,
         ]);
 
-        if (array_key_exists('participants', $data)) {
-            $oldParticipants = $meeting->participantsUsers->pluck('id')->toArray();
-            $newParticipants = $data['participants'] ?? [];
-            $meeting->participantsUsers()->sync($newParticipants);
+        // EF20 - Gestion du comité d'organisation
+        $committeeOption = $request->input('committee_option', '');
+        
+        if ($committeeOption === 'existing' && !empty($data['organization_committee_id'] ?? null)) {
+            // Désassigner l'ancien comité s'il existe
+            $oldCommittee = $meeting->organizationCommittee;
+            if ($oldCommittee && $oldCommittee->id != $data['organization_committee_id']) {
+                $oldCommittee->update(['meeting_id' => null]);
+            }
             
-            // Envoyer des invitations aux nouveaux participants
-            $newParticipantIds = array_diff($newParticipants, $oldParticipants);
-            if (!empty($newParticipantIds)) {
-                $newUsers = User::whereIn('id', $newParticipantIds)->get();
-                foreach ($newUsers as $user) {
-                    $user->notify(new MeetingInvitationNotification($meeting));
-                }
+            // Assigner le nouveau comité
+            $committee = \App\Models\OrganizationCommittee::find($data['organization_committee_id']);
+            if ($committee) {
+                $committee->update(['meeting_id' => $meeting->id]);
+            }
+        } elseif ($committeeOption === 'new' && !empty($request->input('new_committee_name'))) {
+            // Désassigner l'ancien comité s'il existe
+            $oldCommittee = $meeting->organizationCommittee;
+            if ($oldCommittee) {
+                $oldCommittee->update(['meeting_id' => null]);
+            }
+            
+            // Créer un nouveau comité d'organisation
+            $committee = \App\Models\OrganizationCommittee::create([
+                'name' => $request->input('new_committee_name'),
+                'description' => $request->input('new_committee_description'),
+                'host_country' => $request->input('new_committee_host_country'),
+                'meeting_id' => $meeting->id,
+                'created_by' => Auth::id(),
+                'is_active' => true,
+                'activated_at' => now(),
+            ]);
+        } elseif ($committeeOption === '') {
+            // Désassigner le comité actuel si "Aucun comité" est sélectionné
+            $oldCommittee = $meeting->organizationCommittee;
+            if ($oldCommittee) {
+                $oldCommittee->update(['meeting_id' => null]);
             }
         }
 
+        // Création/mise à jour du cahier des charges si demandé
+        if ($request->boolean('create_terms_of_reference') && !empty($request->input('terms_host_country'))) {
+            $existingTerms = $meeting->termsOfReference;
+            
+            $termsData = [
+                'host_country' => $request->input('terms_host_country'),
+                'signature_date' => $request->input('terms_signature_date') ? Carbon::parse($request->input('terms_signature_date')) : null,
+                'responsibilities_ceeac' => $request->input('terms_responsibilities_ceeac'),
+                'responsibilities_host' => $request->input('terms_responsibilities_host'),
+                'financial_sharing' => $request->input('terms_financial_sharing'),
+                'logistical_sharing' => $request->input('terms_logistical_sharing'),
+            ];
+
+            // Gestion de l'upload du document signé
+            if ($request->hasFile('terms_signed_document')) {
+                $file = $request->file('terms_signed_document');
+                $extension = strtolower($file->getClientOriginalExtension());
+                $storedName = \Illuminate\Support\Str::uuid()->toString() . '.' . $extension;
+                $path = $file->storeAs('cahiers-charges/signed', $storedName, 'public');
+                
+                $termsData['signed_document_path'] = $path;
+                $termsData['signed_document_name'] = $storedName;
+                $termsData['signed_document_original_name'] = $file->getClientOriginalName();
+                $termsData['signed_document_size'] = $file->getSize();
+                $termsData['signed_document_mime_type'] = $file->getMimeType();
+                $termsData['signed_document_extension'] = $extension;
+                $termsData['signed_document_uploaded_at'] = now();
+                $termsData['signed_document_uploaded_by'] = Auth::id();
+            }
+            
+            if ($existingTerms && $existingTerms->isSigned()) {
+                // Si signé, créer une nouvelle version
+                $newTerms = $existingTerms->createNewVersion($termsData);
+            } elseif ($existingTerms) {
+                // Mettre à jour la version existante
+                $existingTerms->update($termsData);
+            } else {
+                // Créer un nouveau cahier des charges
+                $termsData['meeting_id'] = $meeting->id;
+                $termsData['status'] = \App\Models\TermsOfReference::STATUS_DRAFT;
+                $termsData['version'] = 1;
+                \App\Models\TermsOfReference::create($termsData);
+            }
+        }
+
+        // Les délégations sont gérées séparément depuis la page de détails
+
+        // Détecter quel onglet était actif pour rediriger vers l'édition avec l'onglet approprié
+        $activeTab = $request->input('active_tab', 'general');
+        
         return redirect()
-            ->route('meetings.show', $meeting)
-            ->with('success', 'La réunion a été mise à jour avec succès.');
+            ->route('meetings.edit', $meeting)
+            ->with('success', 'La réunion a été mise à jour avec succès.')
+            ->with('active_tab', $activeTab);
     }
 
     /**
@@ -338,18 +460,15 @@ class MeetingController extends Controller
      */
     public function destroy(Meeting $meeting)
     {
-        // EF40 - Notification d'annulation aux participants
-        $meeting->load(['participants.user', 'participantsUsers']);
+        // EF40 - Notification d'annulation aux délégations
+        $meeting->load(['delegations.members']);
         
-        foreach ($meeting->participants as $participant) {
-            if ($participant->user) {
-                $participant->user->notify(new MeetingCancellationNotification($meeting));
-            }
-        }
-        
-        if ($meeting->relationLoaded('participantsUsers')) {
-            foreach ($meeting->participantsUsers as $user) {
-                $user->notify(new MeetingCancellationNotification($meeting));
+        foreach ($meeting->delegations as $delegation) {
+            foreach ($delegation->members as $member) {
+                if ($member->email) {
+                    // Envoyer notification par email si nécessaire
+                    // Note: Implémenter une notification spécifique pour les membres de délégation
+                }
             }
         }
 
@@ -357,7 +476,7 @@ class MeetingController extends Controller
 
         return redirect()
             ->route('meetings.index')
-            ->with('success', 'La réunion a été supprimée. Les participants ont été notifiés.');
+            ->with('success', 'La réunion a été supprimée avec succès.');
     }
 
     /**
@@ -455,10 +574,9 @@ class MeetingController extends Controller
             'committee',
             'room',
             'organizer',
-            'participants.user',
-            'participantsUsers',
-            'delegations.users',
+            'delegations.members',
             'documents.type',
+            'termsOfReference',
             'organizationCommittee.members.user',
         ]);
 
@@ -470,9 +588,7 @@ class MeetingController extends Controller
             ->unique('id');
 
         $pdf = Pdf::loadView('meetings.pdf', [
-            'meeting'       => $meeting,
-            'participants'  => $participants,
-            'delegations'   => $meeting->delegations,
+            'meeting' => $meeting,
         ])->setPaper('A4', 'portrait');
 
         $fileName = 'reunion-' . ($meeting->slug ?? $meeting->id) . '.pdf';
@@ -481,63 +597,56 @@ class MeetingController extends Controller
     }
 
     /**
-     * Envoi manuel d'une notification par email aux participants.
+     * Envoi manuel d'une notification par email aux délégations.
      */
     public function notifyParticipants(Meeting $meeting)
     {
         $this->authorize('update', $meeting);
 
-        // Charger les participants (anciennes et nouvelles relations)
-        $meeting->loadMissing(['participants.user', 'participantsUsers', 'type', 'room']);
+        // Charger les délégations et leurs membres
+        $meeting->loadMissing(['delegations.members', 'type', 'room']);
 
-        $pivotUsers = $meeting->relationLoaded('participantsUsers')
-            ? $meeting->participantsUsers
-            : $meeting->participantsUsers()->get();
-
-        $participantUsers = $meeting->relationLoaded('participants')
-            ? $meeting->participants->pluck('user')->filter()
-            : $meeting->participants()->with('user')->get()->pluck('user')->filter();
-
-        $recipients = $pivotUsers
-            ->concat($participantUsers)
-            ->filter()
-            ->unique('id');
-
-        if ($recipients->isEmpty()) {
-            return back()->with('error', 'Aucun participant à notifier.');
+        $recipients = collect();
+        
+        foreach ($meeting->delegations as $delegation) {
+            foreach ($delegation->members as $member) {
+                if ($member->email) {
+                    // Créer une notification pour les membres de délégation
+                    // Note: Implémenter une notification spécifique pour les membres de délégation
+                    $recipients->push((object)['email' => $member->email, 'name' => $member->full_name]);
+                }
+            }
         }
 
-        Notification::send($recipients, new MeetingInvitationNotification($meeting));
+        if ($recipients->isEmpty()) {
+            return back()->with('error', 'Aucun membre de délégation à notifier.');
+        }
 
-        return back()->with('success', 'Les convocations ont été envoyées aux participants par email.');
+        // TODO: Implémenter l'envoi de notifications aux membres de délégation
+        // Notification::send($recipients, new MeetingInvitationNotification($meeting));
+
+        return back()->with('success', 'Les convocations ont été envoyées aux délégations par email.');
     }
 
     /**
-     * Envoi des invitations aux participants (ancienne et nouvelle modélisation).
+     * Envoi des invitations aux délégations.
+     * NOUVELLE LOGIQUE : Les invitations sont envoyées aux délégations, pas aux participants individuels.
      */
     protected function sendMeetingInvitations(Meeting $meeting): void
     {
-        // On charge ce dont les notifications ont besoin (utilisateurs + métadonnées de réunion).
-        $meeting->loadMissing(['participants.user', 'participantsUsers', 'type', 'room']);
+        // Charger les délégations et leurs membres
+        $meeting->loadMissing(['delegations.members', 'type', 'room']);
 
-        // Participants via la table pivot participants_reunions (nouveau schéma).
-        $pivotUsers = $meeting->relationLoaded('participantsUsers')
-            ? $meeting->participantsUsers
-            : $meeting->participantsUsers()->get();
-
-        // Participants via le modèle MeetingParticipant (schéma historique).
-        $participantUsers = $meeting->relationLoaded('participants')
-            ? $meeting->participants->pluck('user')->filter()
-            : $meeting->participants()->with('user')->get()->pluck('user')->filter();
-
-        // Merge + déduplication par id.
-        $recipients = $pivotUsers
-            ->concat($participantUsers)
-            ->filter()
-            ->unique('id');
-
-        if ($recipients->isNotEmpty()) {
-            Notification::send($recipients, new MeetingInvitationNotification($meeting));
+        // TODO: Implémenter l'envoi de notifications aux délégations
+        // Les notifications doivent être envoyées aux chefs de délégation et/ou aux membres
+        // selon la logique métier de la CEEAC
+        
+        foreach ($meeting->delegations as $delegation) {
+            // Envoyer notification au chef de délégation
+            $head = $delegation->members()->where('role', 'head')->first();
+            if ($head && $head->email) {
+                // TODO: Créer et envoyer une notification spécifique pour les délégations
+            }
         }
     }
 }

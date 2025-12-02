@@ -2,13 +2,14 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Fiche r&eacute;union - {{ $meeting->title }}</title>
+    <title>Fiche réunion - {{ $meeting->title }}</title>
     <style>
         @page { margin: 120px 30px 70px 30px; }
         body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color: #111827; margin: 0; padding: 0 24px; box-sizing: border-box; }
         h1, h2, h3, h4 { margin: 0 0 8px 0; color: #0f172a; }
         h1 { font-size: 20px; }
         h2 { font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-top: 18px; }
+        h3 { font-size: 14px; margin-top: 12px; margin-bottom: 6px; color: #374151; }
         p { margin: 2px 0 6px 0; }
         .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin-top: 10px; }
         .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 11px; }
@@ -17,8 +18,8 @@
         .badge-warning { background: #fef9c3; color: #854d0e; }
         .badge-danger { background: #fee2e2; color: #991b1b; }
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; }
-        th { background: #f8fafc; }
+        th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; font-size: 11px; }
+        th { background: #f8fafc; font-weight: bold; }
         .muted { color: #6b7280; }
         .footer {
             font-size: 11px;
@@ -28,6 +29,8 @@
             padding: 8px 0 0 0;
             margin-top: 24px;
         }
+        .delegation-section { margin-top: 12px; page-break-inside: avoid; }
+        .member-list { margin-left: 16px; margin-top: 4px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -58,11 +61,11 @@
                 : ($meeting->status ?? 'brouillon');
             $statusLabels = [
                 'brouillon' => ['label' => 'Brouillon', 'class' => 'badge-warning'],
-                'planifiee' => ['label' => 'Planifi&eacute;e', 'class' => 'badge-primary'],
-                'en_preparation' => ['label' => 'En pr&eacute;paration', 'class' => 'badge-warning'],
+                'planifiee' => ['label' => 'Planifiée', 'class' => 'badge-primary'],
+                'en_preparation' => ['label' => 'En préparation', 'class' => 'badge-warning'],
                 'en_cours' => ['label' => 'En cours', 'class' => 'badge-primary'],
-                'terminee' => ['label' => 'Termin&eacute;e', 'class' => 'badge-success'],
-                'annulee' => ['label' => 'Annul&eacute;e', 'class' => 'badge-danger'],
+                'terminee' => ['label' => 'Terminée', 'class' => 'badge-success'],
+                'annulee' => ['label' => 'Annulée', 'class' => 'badge-danger'],
             ];
             $label = $statusLabels[$status]['label'] ?? ucfirst($status);
             $class = $statusLabels[$status]['class'] ?? 'badge-primary';
@@ -71,13 +74,13 @@
     </p>
 
     <div class="meta">
-        <div><strong>Type :</strong> {{ $meeting->type?->name ?? 'Non renseign&eacute;' }}</div>
-        <div><strong>Comit&eacute; :</strong> {{ $meeting->committee?->name ?? 'Non renseign&eacute;' }}</div>
-        <div><strong>Organisateur :</strong> {{ $meeting->organizer?->name ?? 'Non renseign&eacute;' }}</div>
-        <div><strong>Salle :</strong> {{ $meeting->room?->name ?? 'Non renseign&eacute;' }}</div>
-        <div><strong>D&eacute;but :</strong> {{ $meeting->start_at?->format('d/m/Y H:i') ?? 'Non d&eacute;fini' }}</div>
-        <div><strong>Fin :</strong> {{ $meeting->end_at?->format('d/m/Y H:i') ?? 'Non d&eacute;finie' }}</div>
-        <div><strong>Dur&eacute;e :</strong> {{ $meeting->duration_minutes ? $meeting->duration_minutes . ' min' : 'Non d&eacute;finie' }}</div>
+        <div><strong>Type :</strong> {{ $meeting->type?->name ?? 'Non renseigné' }}</div>
+        <div><strong>Comité :</strong> {{ $meeting->committee?->name ?? 'Non renseigné' }}</div>
+        <div><strong>Organisateur :</strong> {{ $meeting->organizer?->name ?? 'Non renseigné' }}</div>
+        <div><strong>Salle :</strong> {{ $meeting->room?->name ?? 'Non renseigné' }}</div>
+        <div><strong>Début :</strong> {{ $meeting->start_at?->format('d/m/Y H:i') ?? 'Non défini' }}</div>
+        <div><strong>Fin :</strong> {{ $meeting->end_at?->format('d/m/Y H:i') ?? 'Non définie' }}</div>
+        <div><strong>Durée :</strong> {{ $meeting->duration_minutes ? $meeting->duration_minutes . ' min' : 'Non définie' }}</div>
         <div><strong>Rappel :</strong> {{ $meeting->reminder_minutes_before ? $meeting->reminder_minutes_before . ' min avant' : 'Aucun' }}</div>
     </div>
 
@@ -88,102 +91,201 @@
 
     @if($meeting->agenda)
         <h2>Ordre du jour</h2>
-        <p>{{ $meeting->agenda }}</p>
+        <p style="white-space: pre-wrap;">{{ $meeting->agenda }}</p>
     @endif
 
-    <h2>Comit&eacute; d'organisation</h2>
+    {{-- Comité d'organisation --}}
+    <h2>Comité d'organisation</h2>
     @if($meeting->organizationCommittee)
         <p><strong>Nom :</strong> {{ $meeting->organizationCommittee->name }}</p>
-        <p class="muted">{{ $meeting->organizationCommittee->description }}</p>
+        @if($meeting->organizationCommittee->description)
+            <p class="muted">{{ $meeting->organizationCommittee->description }}</p>
+        @endif
+        @if($meeting->organizationCommittee->host_country)
+            <p><strong>Pays hôte :</strong> {{ $meeting->organizationCommittee->host_country }}</p>
+        @endif
         @php $members = $meeting->organizationCommittee->members ?? collect(); @endphp
         @if($members->count())
             <table>
                 <thead>
                     <tr>
                         <th>Membre</th>
-                        <th>R&ocirc;le</th>
-                        <th>Notes</th>
+                        <th>Type</th>
+                        <th>Rôle</th>
+                        <th>Service/Département</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($members as $member)
                         <tr>
-                            <td>{{ $member->user?->name ?? 'Non renseign&eacute;' }}</td>
+                            <td>{{ $member->user?->name ?? 'Non renseigné' }}</td>
+                            <td>
+                                @php
+                                    $memberType = $member->member_type ?? 'ceeac';
+                                    echo $memberType === 'host_country' ? 'Pays hôte' : 'CEEAC';
+                                @endphp
+                            </td>
                             <td>{{ $member->role ?? '-' }}</td>
-                            <td>{{ $member->notes ?? '-' }}</td>
+                            <td>{{ $member->department ?? $member->service ?? '-' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         @else
-            <p class="muted">Aucun membre renseign&eacute;.</p>
+            <p class="muted">Aucun membre renseigné.</p>
         @endif
     @else
-        <p class="muted">Aucun comit&eacute; d'organisation associ&eacute;.</p>
+        <p class="muted">Aucun comité d'organisation associé.</p>
     @endif
 
-    @php $delegations = $delegations ?? collect(); @endphp
+    {{-- Cahier des charges --}}
+    @if($meeting->termsOfReference)
+        <h2>Cahier des charges</h2>
+        <p><strong>Pays hôte :</strong> {{ $meeting->termsOfReference->host_country ?? 'Non renseigné' }}</p>
+        @if($meeting->termsOfReference->signature_date)
+            <p><strong>Date de signature :</strong> {{ $meeting->termsOfReference->signature_date->format('d/m/Y') }}</p>
+        @endif
+        <p><strong>Statut :</strong> 
+            @php
+                $statusLabels = [
+                    'draft' => 'Brouillon',
+                    'pending_validation' => 'En attente de validation',
+                    'validated' => 'Validé',
+                    'signed' => 'Signé',
+                    'cancelled' => 'Annulé'
+                ];
+                echo $statusLabels[$meeting->termsOfReference->status] ?? $meeting->termsOfReference->status;
+            @endphp
+        </p>
+        <p><strong>Version :</strong> {{ $meeting->termsOfReference->version }}</p>
+    @endif
+
+    {{-- Délégations participantes --}}
+    <h2>Délégations participantes</h2>
+    @php $delegations = $meeting->delegations ?? collect(); @endphp
     @if($delegations->count())
-        <h2>Délégations liées</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Code</th>
-                    <th>Pays</th>
-                    <th>Participants</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($delegations as $delegation)
+        @foreach($delegations as $delegation)
+            <div class="delegation-section">
+                <h3>{{ $delegation->title }}</h3>
+                <table>
                     <tr>
-                        <td>{{ $delegation->title }}</td>
-                        <td>{{ $delegation->code ?? '—' }}</td>
-                        <td>{{ $delegation->country ?? '—' }}</td>
+                        <td style="width: 30%;"><strong>Type d'entité :</strong></td>
                         <td>
-                            @php $users = $delegation->users ?? collect(); @endphp
-                            @if($users->count())
-                                {{ $users->pluck('name')->implode(', ') }}
-                            @else
-                                —
-                            @endif
+                            @php
+                                $entityTypes = [
+                                    'state_member' => 'État membre',
+                                    'international_organization' => 'Organisation internationale',
+                                    'technical_partner' => 'Partenaire technique',
+                                    'financial_partner' => 'Partenaire financier',
+                                    'other' => 'Autre'
+                                ];
+                                echo $entityTypes[$delegation->entity_type] ?? $delegation->entity_type;
+                            @endphp
                         </td>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-
-    <h2>Participants</h2>
-    @if(isset($participants) && $participants->count())
-        <table>
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>R&ocirc;le/Statut</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($participants as $user)
-                    @php
-                        $participation = $meeting->participants->firstWhere('user_id', $user->id);
-                        $role = $participation?->role ?? 'Participant';
-                        $statusValue = $participation?->status ?? 'invited';
-                    @endphp
+                    @if($delegation->country)
+                        <tr>
+                            <td><strong>Pays :</strong></td>
+                            <td>{{ $delegation->country }}</td>
+                        </tr>
+                    @endif
+                    @if($delegation->organization_name)
+                        <tr>
+                            <td><strong>Organisation :</strong></td>
+                            <td>{{ $delegation->organization_name }}</td>
+                        </tr>
+                    @endif
+                    @if($delegation->head_of_delegation_name)
+                        <tr>
+                            <td><strong>Chef de délégation :</strong></td>
+                            <td>
+                                {{ $delegation->head_of_delegation_name }}
+                                @if($delegation->head_of_delegation_position)
+                                    ({{ $delegation->head_of_delegation_position }})
+                                @endif
+                            </td>
+                        </tr>
+                    @endif
                     <tr>
-                        <td>{{ $user->name }}</td>
-                        <td>{{ $user->email ?? '-' }}</td>
-                        <td>{{ ucfirst($role) }} ({{ $statusValue }})</td>
+                        <td><strong>Statut de participation :</strong></td>
+                        <td>
+                            @php
+                                $participationStatuses = [
+                                    'invited' => 'Invité',
+                                    'confirmed' => 'Confirmé',
+                                    'registered' => 'Inscrit',
+                                    'present' => 'Présent',
+                                    'absent' => 'Absent',
+                                    'excused' => 'Excusé'
+                                ];
+                                echo $participationStatuses[$delegation->participation_status] ?? $delegation->participation_status;
+                            @endphp
+                        </td>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </table>
+
+                {{-- Membres de la délégation --}}
+                @php $delegationMembers = $delegation->members ?? collect(); @endphp
+                @if($delegationMembers->count())
+                    <h4 style="margin-top: 8px; margin-bottom: 4px; font-size: 12px;">Membres de la délégation ({{ $delegationMembers->count() }})</h4>
+                    <table style="margin-top: 4px;">
+                        <thead>
+                            <tr>
+                                <th>Nom complet</th>
+                                <th>Email</th>
+                                <th>Fonction</th>
+                                <th>Rôle</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($delegationMembers as $member)
+                                <tr>
+                                    <td>
+                                        {{ trim(($member->title ?? '') . ' ' . ($member->first_name ?? '') . ' ' . ($member->last_name ?? '')) }}
+                                    </td>
+                                    <td>{{ $member->email ?? '-' }}</td>
+                                    <td>{{ $member->position ?? '-' }}</td>
+                                    <td>
+                                        @php
+                                            $roles = [
+                                                'head' => 'Chef',
+                                                'deputy' => 'Adjoint',
+                                                'member' => 'Membre',
+                                                'advisor' => 'Conseiller',
+                                                'expert' => 'Expert',
+                                                'interpreter' => 'Interprète'
+                                            ];
+                                            echo $roles[$member->role] ?? $member->role;
+                                        @endphp
+                                    </td>
+                                    <td>
+                                        @php
+                                            $statuses = [
+                                                'pending' => 'En attente',
+                                                'confirmed' => 'Confirmé',
+                                                'registered' => 'Inscrit',
+                                                'present' => 'Présent',
+                                                'absent' => 'Absent'
+                                            ];
+                                            echo $statuses[$member->status] ?? $member->status;
+                                        @endphp
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <p class="muted" style="margin-top: 4px; font-size: 11px;">Aucun membre enregistré pour cette délégation.</p>
+                @endif
+            </div>
+        @endforeach
     @else
-        <p class="muted">Aucun participant renseign&eacute;.</p>
+        <p class="muted">Aucune délégation enregistrée pour cette réunion.</p>
     @endif
 
-    <h2>Documents associ&eacute;s</h2>
+    {{-- Documents associés --}}
+    <h2>Documents associés</h2>
     @php $documents = $meeting->documents ?? collect(); @endphp
     @if($documents->count())
         <table>
@@ -207,11 +309,13 @@
             </tbody>
         </table>
     @else
-        <p class="muted">Aucun document associ&eacute; pour le moment.</p>
+        <p class="muted">Aucun document associé pour le moment.</p>
     @endif
 
     <div class="footer">
-        BP:2112 Libreville-GABON Tel. +(241) 44 47 31, +(241) 44 47 34 -Email : commission@ceeac-eccas.org
+        BP:2112 Libreville-GABON Tel. +(241) 44 47 31, +(241) 44 47 34 - Email : commission@ceeac-eccas.org
+        <br>
+        Document généré le {{ now()->format('d/m/Y à H:i') }} - SGRS-CEEAC
     </div>
 </body>
 </html>

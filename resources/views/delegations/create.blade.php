@@ -21,8 +21,24 @@
 <div class="card shadow-sm border-0">
     <div class="card-body">
         @include('partials.alerts')
+        
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <h6 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle"></i> Erreurs de validation
+                </h6>
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <form method="POST" action="{{ route('delegations.store') }}">
+            @if(request('meeting_id'))
+                <input type="hidden" name="redirect_to_meeting" value="1">
+            @endif
             @include('delegations._form')
 
             <div class="mt-4 d-flex justify-content-end gap-2">
