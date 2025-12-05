@@ -758,6 +758,24 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('meetingForm');
+    
+    // Fonction pour afficher un message de confirmation temporaire
+    function showSuccessMessage(message, tabName) {
+        const tabButton = document.querySelector(`#${tabName}-tab`);
+        if (tabButton) {
+            const originalHtml = tabButton.innerHTML;
+            const icon = tabButton.querySelector('i').outerHTML;
+            tabButton.innerHTML = `${icon} ${message}`;
+            tabButton.classList.add('text-success');
+            
+            setTimeout(() => {
+                tabButton.innerHTML = originalHtml;
+                tabButton.classList.remove('text-success');
+            }, 3000);
+        }
+    }
+
     // Gestion de l'affichage du formulaire de comité
     const noCommittee = document.getElementById('no_committee');
     const useExisting = document.getElementById('use_existing_committee');
@@ -793,14 +811,111 @@ document.addEventListener('DOMContentLoaded', function() {
         createTermsCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 termsFields.style.display = 'block';
+                // Validation du pays hôte si onglet actif
+                const hostCountryInput = document.querySelector('input[name="terms_host_country"]');
+                if (hostCountryInput && !hostCountryInput.value.trim()) {
+                    hostCountryInput.focus();
+                }
             } else {
                 termsFields.style.display = 'none';
             }
         });
     }
 
+    // Validation des onglets avant soumission avec messages spécifiques
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        let errorMessage = '';
+        let errorTab = 'general';
+
+        // Validation onglet général
+        const title = document.querySelector('input[name="title"]');
+        const meetingType = document.querySelector('select[name="meeting_type_id"]');
+        const date = document.querySelector('input[name="date"]');
+        const time = document.querySelector('input[name="time"]');
+        
+        if (!title || !title.value.trim()) {
+            isValid = false;
+            errorMessage = 'Le titre de la réunion est obligatoire.';
+            errorTab = 'general';
+        } else if (!meetingType || !meetingType.value) {
+            isValid = false;
+            errorMessage = 'Le type de réunion est obligatoire.';
+            errorTab = 'general';
+        } else if (!date || !date.value) {
+            isValid = false;
+            errorMessage = 'La date de la réunion est obligatoire.';
+            errorTab = 'general';
+        } else if (!time || !time.value) {
+            isValid = false;
+            errorMessage = 'L\'heure de la réunion est obligatoire.';
+            errorTab = 'general';
+        }
+
+        // Validation onglet comité
+        if (isValid && useExisting && useExisting.checked) {
+            const committeeSelect = document.querySelector('select[name="organization_committee_id"]');
+            if (committeeSelect && !committeeSelect.value) {
+                isValid = false;
+                errorMessage = 'Veuillez sélectionner un comité d\'organisation ou choisir une autre option.';
+                errorTab = 'committee';
+            }
+        }
+
+        if (isValid && createNew && createNew.checked) {
+            const newCommitteeName = document.querySelector('input[name="new_committee_name"]');
+            if (newCommitteeName && !newCommitteeName.value.trim()) {
+                isValid = false;
+                errorMessage = 'Le nom du nouveau comité d\'organisation est obligatoire.';
+                errorTab = 'committee';
+            }
+        }
+
+        // Validation onglet cahier des charges
+        if (isValid && createTermsCheckbox && createTermsCheckbox.checked) {
+            const hostCountry = document.querySelector('input[name="terms_host_country"]');
+            if (hostCountry && !hostCountry.value.trim()) {
+                isValid = false;
+                errorMessage = 'Le pays hôte est obligatoire pour créer un cahier des charges.';
+                errorTab = 'terms';
+            }
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            // Supprimer les anciennes alertes
+            const existingAlerts = document.querySelectorAll('.alert-danger');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Afficher l'erreur
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <strong>Erreur de validation :</strong> ${errorMessage}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            form.insertBefore(alertDiv, form.firstChild);
+            
+            // Activer l'onglet avec l'erreur
+            const tabButton = document.querySelector(`#${errorTab}-tab`);
+            if (tabButton) {
+                const tab = new bootstrap.Tab(tabButton);
+                tab.show();
+            }
+            
+            return false;
+        }
+
+        // Afficher message de confirmation avant soumission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mise à jour en cours...';
+            submitBtn.disabled = true;
+        }
+    });
+
     // Enregistrer l'onglet actif avant soumission
-    const form = document.getElementById('meetingForm');
     const tabs = document.querySelectorAll('#meetingTabs button[data-bs-toggle="tab"]');
     
     tabs.forEach(tab => {
@@ -827,6 +942,37 @@ document.addEventListener('DOMContentLoaded', function() {
             tab.show();
         }
     }
+
+    // Afficher les messages de succès de session s'ils existent
+    @if(session('success'))
+        // Supprimer les anciennes alertes
+        const existingSuccessAlerts = document.querySelectorAll('.alert-success');
+        existingSuccessAlerts.forEach(alert => {
+            if (!alert.classList.contains('alert-dismissible')) {
+                alert.remove();
+            }
+        });
+        
+        const successAlert = document.createElement('div');
+        successAlert.className = 'alert alert-success alert-dismissible fade show';
+        successAlert.innerHTML = `
+            <i class="bi bi-check-circle"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        form.insertBefore(successAlert, form.firstChild);
+        
+        // Activer l'onglet approprié si spécifié
+        @if(session('active_tab'))
+            const activeTabFromSession = '{{ session("active_tab") }}';
+            if (activeTabFromSession && activeTabFromSession !== 'general') {
+                const tabButton = document.querySelector(`#${activeTabFromSession}-tab`);
+                if (tabButton) {
+                    const tab = new bootstrap.Tab(tabButton);
+                    tab.show();
+                }
+            }
+        @endif
+    @endif
 });
 </script>
 @endpush

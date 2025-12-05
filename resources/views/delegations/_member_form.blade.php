@@ -126,20 +126,17 @@
                 <option value="head" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'head')>
                     Chef de délégation
                 </option>
-                <option value="deputy" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'deputy')>
-                    Adjoint
-                </option>
                 <option value="member" @selected(old("members.{$index}.role", $member['role'] ?? 'member') == 'member')>
                     Membre
-                </option>
-                <option value="advisor" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'advisor')>
-                    Conseiller
                 </option>
                 <option value="expert" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'expert')>
                     Expert
                 </option>
-                <option value="interpreter" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'interpreter')>
-                    Interprète
+                <option value="observer" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'observer')>
+                    Observateur
+                </option>
+                <option value="secretary" @selected(old("members.{$index}.role", $member['role'] ?? '') == 'secretary')>
+                    Secrétaire
                 </option>
             </select>
             @error("members.{$index}.role")
@@ -151,20 +148,20 @@
             <label class="form-label">Statut</label>
             <select name="members[{{ $index }}][status]" 
                     class="form-select @error("members.{$index}.status") is-invalid @enderror">
-                <option value="pending" @selected(old("members.{$index}.status", $member['status'] ?? 'pending') == 'pending')>
-                    En attente
+                <option value="invited" @selected(old("members.{$index}.status", $member['status'] ?? 'invited') == 'invited')>
+                    Invité
                 </option>
                 <option value="confirmed" @selected(old("members.{$index}.status", $member['status'] ?? '') == 'confirmed')>
                     Confirmé
-                </option>
-                <option value="registered" @selected(old("members.{$index}.status", $member['status'] ?? '') == 'registered')>
-                    Inscrit
                 </option>
                 <option value="present" @selected(old("members.{$index}.status", $member['status'] ?? '') == 'present')>
                     Présent
                 </option>
                 <option value="absent" @selected(old("members.{$index}.status", $member['status'] ?? '') == 'absent')>
                     Absent
+                </option>
+                <option value="excused" @selected(old("members.{$index}.status", $member['status'] ?? '') == 'excused')>
+                    Excusé
                 </option>
             </select>
             @error("members.{$index}.status")
@@ -184,4 +181,7 @@
         </div>
     </div>
 </div>
+
+
+
 

@@ -57,8 +57,8 @@ class UpdateDelegationRequest extends FormRequest
             'members.*.title'           => ['nullable', 'string', 'max:255'],
             'members.*.institution'     => ['nullable', 'string', 'max:255'],
             'members.*.department'      => ['nullable', 'string', 'max:255'],
-            'members.*.role'            => ['nullable', 'string', 'in:head,deputy,member,advisor,expert,interpreter'],
-            'members.*.status'          => ['nullable', 'string', 'in:pending,confirmed,registered,present,absent'],
+            'members.*.role'            => ['nullable', 'string', 'in:head,member,expert,observer,secretary'],
+            'members.*.status'          => ['nullable', 'string', 'in:invited,confirmed,present,absent,excused'],
             'members.*.notes'           => ['nullable', 'string'],
         ];
     }

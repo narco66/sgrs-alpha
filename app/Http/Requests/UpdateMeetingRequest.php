@@ -64,7 +64,9 @@ class UpdateMeetingRequest extends FormRequest
             'terms_financial_sharing'    => ['nullable', 'string'],
             'terms_logistical_sharing'    => ['nullable', 'string'],
             'terms_signed_document'      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-            'terms_signed_document'      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            
+            // Onglet actif pour redirection
+            'active_tab'                 => ['nullable', 'string', 'in:general,committee,terms,delegations'],
             
             // Statut
             'status'                    => ['nullable', 'string'],

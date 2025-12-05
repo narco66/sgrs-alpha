@@ -122,6 +122,9 @@ class MeetingController extends Controller
      */
     public function store(StoreMeetingRequest $request)
     {
+        // Vérification des droits - déjà vérifiée par authorizeResource mais on double-vérifie
+        $this->authorize('create', Meeting::class);
+        
         $data = $request->validated();
 
         // Construire les timestamps à partir de date + time si start_at/end_at ne sont pas fournis
@@ -163,13 +166,16 @@ class MeetingController extends Controller
         ]);
 
         // EF20 - Gestion du comité d'organisation
-        $committeeOption = $request->input('committee_option', 'existing');
+        $committeeOption = $request->input('committee_option', '');
+        $committee = null;
+        $committeeCreated = false;
         
         if ($committeeOption === 'existing' && !empty($data['organization_committee_id'] ?? null)) {
             // Assigner un comité existant
             $committee = \App\Models\OrganizationCommittee::find($data['organization_committee_id']);
             if ($committee) {
                 $committee->update(['meeting_id' => $meeting->id]);
+                $committeeCreated = true;
             }
         } elseif ($committeeOption === 'new' && !empty($request->input('new_committee_name'))) {
             // Créer un nouveau comité d'organisation
@@ -182,9 +188,11 @@ class MeetingController extends Controller
                 'is_active' => true,
                 'activated_at' => now(),
             ]);
+            $committeeCreated = true;
         }
 
         // Création du cahier des charges si demandé
+        $termsCreated = false;
         if ($request->boolean('create_terms_of_reference') && !empty($request->input('terms_host_country'))) {
             \App\Models\TermsOfReference::create([
                 'meeting_id' => $meeting->id,
@@ -197,6 +205,7 @@ class MeetingController extends Controller
                 'status' => \App\Models\TermsOfReference::STATUS_DRAFT,
                 'version' => 1,
             ]);
+            $termsCreated = true;
         }
 
         // Les délégations peuvent être ajoutées après la création de la réunion
@@ -206,9 +215,24 @@ class MeetingController extends Controller
         // Note: Les invitations seront envoyées aux délégations, pas aux participants individuels
         $this->sendMeetingInvitations($meeting);
 
+        // Construire le message de succès détaillé
+        $successMessages = ['✓ La réunion a été créée avec succès.'];
+        
+        if ($committeeCreated) {
+            if ($committeeOption === 'new') {
+                $successMessages[] = '✓ Un nouveau comité d\'organisation a été créé et associé à la réunion.';
+            } else {
+                $successMessages[] = '✓ Le comité d\'organisation a été associé à la réunion.';
+            }
+        }
+        
+        if ($termsCreated) {
+            $successMessages[] = '✓ Le cahier des charges a été créé avec succès.';
+        }
+
         return redirect()
             ->route('meetings.show', $meeting)
-            ->with('success', 'La réunion a été créée avec succès.');
+            ->with('success', implode(' ', $successMessages));
     }
 
     /**
@@ -319,6 +343,9 @@ class MeetingController extends Controller
      */
     public function update(UpdateMeetingRequest $request, Meeting $meeting)
     {
+        // Vérification des droits - déjà vérifiée par authorizeResource mais on double-vérifie
+        $this->authorize('update', $meeting);
+        
         $data = $request->validated();
 
         // Construire les timestamps à partir de date + time si start_at/end_at ne sont pas fournis
@@ -360,10 +387,12 @@ class MeetingController extends Controller
 
         // EF20 - Gestion du comité d'organisation
         $committeeOption = $request->input('committee_option', '');
+        $committee = null;
+        $oldCommittee = $meeting->organizationCommittee; // Charger avant modifications
+        $committeeUpdated = false;
         
         if ($committeeOption === 'existing' && !empty($data['organization_committee_id'] ?? null)) {
-            // Désassigner l'ancien comité s'il existe
-            $oldCommittee = $meeting->organizationCommittee;
+            // Désassigner l'ancien comité s'il existe et est différent
             if ($oldCommittee && $oldCommittee->id != $data['organization_committee_id']) {
                 $oldCommittee->update(['meeting_id' => null]);
             }
@@ -372,10 +401,10 @@ class MeetingController extends Controller
             $committee = \App\Models\OrganizationCommittee::find($data['organization_committee_id']);
             if ($committee) {
                 $committee->update(['meeting_id' => $meeting->id]);
+                $committeeUpdated = true;
             }
         } elseif ($committeeOption === 'new' && !empty($request->input('new_committee_name'))) {
             // Désassigner l'ancien comité s'il existe
-            $oldCommittee = $meeting->organizationCommittee;
             if ($oldCommittee) {
                 $oldCommittee->update(['meeting_id' => null]);
             }
@@ -390,18 +419,20 @@ class MeetingController extends Controller
                 'is_active' => true,
                 'activated_at' => now(),
             ]);
+            $committeeUpdated = true;
         } elseif ($committeeOption === '') {
             // Désassigner le comité actuel si "Aucun comité" est sélectionné
-            $oldCommittee = $meeting->organizationCommittee;
             if ($oldCommittee) {
                 $oldCommittee->update(['meeting_id' => null]);
+                $committeeUpdated = true;
             }
         }
 
         // Création/mise à jour du cahier des charges si demandé
+        $termsUpdated = false;
+        $existingTerms = $meeting->termsOfReference;
+        
         if ($request->boolean('create_terms_of_reference') && !empty($request->input('terms_host_country'))) {
-            $existingTerms = $meeting->termsOfReference;
-            
             $termsData = [
                 'host_country' => $request->input('terms_host_country'),
                 'signature_date' => $request->input('terms_signature_date') ? Carbon::parse($request->input('terms_signature_date')) : null,
@@ -430,27 +461,59 @@ class MeetingController extends Controller
             
             if ($existingTerms && $existingTerms->isSigned()) {
                 // Si signé, créer une nouvelle version
-                $newTerms = $existingTerms->createNewVersion($termsData);
+                $existingTerms->createNewVersion($termsData);
+                $termsUpdated = true;
             } elseif ($existingTerms) {
                 // Mettre à jour la version existante
                 $existingTerms->update($termsData);
+                $termsUpdated = true;
             } else {
                 // Créer un nouveau cahier des charges
                 $termsData['meeting_id'] = $meeting->id;
                 $termsData['status'] = \App\Models\TermsOfReference::STATUS_DRAFT;
                 $termsData['version'] = 1;
                 \App\Models\TermsOfReference::create($termsData);
+                $termsUpdated = true;
             }
         }
 
         // Les délégations sont gérées séparément depuis la page de détails
+
+        // Construire le message de succès détaillé selon les actions effectuées
+        $successMessages = ['✓ Les informations générales de la réunion ont été mises à jour avec succès.'];
+        
+        // Messages pour le comité d'organisation
+        if ($committeeUpdated) {
+            if ($committeeOption === 'existing' && $committee) {
+                $successMessages[] = '✓ Le comité d\'organisation a été mis à jour.';
+            } elseif ($committeeOption === 'new' && $committee) {
+                $successMessages[] = '✓ Un nouveau comité d\'organisation a été créé et associé à la réunion.';
+            } elseif ($committeeOption === '' && $oldCommittee) {
+                $successMessages[] = '✓ Le comité d\'organisation a été dissocié de la réunion.';
+            }
+        }
+        
+        // Messages pour le cahier des charges
+        if ($termsUpdated) {
+            if ($existingTerms) {
+                // Recharger pour avoir le statut à jour
+                $existingTerms->refresh();
+                if ($existingTerms->isSigned()) {
+                    $successMessages[] = '✓ Une nouvelle version du cahier des charges a été créée (l\'ancienne version était signée).';
+                } else {
+                    $successMessages[] = '✓ Le cahier des charges a été mis à jour avec succès.';
+                }
+            } else {
+                $successMessages[] = '✓ Le cahier des charges a été créé avec succès.';
+            }
+        }
 
         // Détecter quel onglet était actif pour rediriger vers l'édition avec l'onglet approprié
         $activeTab = $request->input('active_tab', 'general');
         
         return redirect()
             ->route('meetings.edit', $meeting)
-            ->with('success', 'La réunion a été mise à jour avec succès.')
+            ->with('success', implode(' ', $successMessages))
             ->with('active_tab', $activeTab);
     }
 

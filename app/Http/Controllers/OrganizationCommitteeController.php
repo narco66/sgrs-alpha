@@ -139,19 +139,19 @@ class OrganizationCommitteeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'meeting_id' => ['nullable', 'exists:reunions,id'],
-            'is_active' => ['boolean'],
+            'is_active' => ['nullable', 'boolean'],
             'members' => ['nullable', 'array'],
             'members.*.user_id' => ['required', 'exists:utilisateurs,id', 'distinct'],
             'members.*.role' => ['required', 'string', 'max:255'],
             'members.*.notes' => ['nullable', 'string'],
         ]);
 
-        DB::transaction(function () use ($validated, $organizationCommittee) {
+        DB::transaction(function () use ($validated, $organizationCommittee, $request) {
             $organizationCommittee->update([
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
                 'meeting_id' => $validated['meeting_id'] ?? null,
-                'is_active' => $validated['is_active'] ?? true,
+                'is_active' => $request->boolean('is_active', true),
             ]);
 
             // Supprimer les anciens membres

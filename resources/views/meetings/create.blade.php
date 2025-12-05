@@ -493,6 +493,24 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('meetingForm');
+    
+    // Fonction pour afficher un message de confirmation temporaire
+    function showSuccessMessage(message, tabName) {
+        const tabButton = document.querySelector(`#${tabName}-tab`);
+        if (tabButton) {
+            const originalHtml = tabButton.innerHTML;
+            const icon = tabButton.querySelector('i').outerHTML;
+            tabButton.innerHTML = `${icon} ${message}`;
+            tabButton.classList.add('text-success');
+            
+            setTimeout(() => {
+                tabButton.innerHTML = originalHtml;
+                tabButton.classList.remove('text-success');
+            }, 3000);
+        }
+    }
+
     // Gestion de l'affichage du formulaire de comité
     const noCommittee = document.getElementById('no_committee');
     const useExisting = document.getElementById('use_existing_committee');
@@ -501,21 +519,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const newSection = document.getElementById('new_committee_section');
 
     function updateCommitteeSections() {
-        if (noCommittee.checked) {
+        if (noCommittee && noCommittee.checked) {
             existingSection.style.display = 'none';
             newSection.style.display = 'none';
-        } else if (useExisting.checked) {
+        } else if (useExisting && useExisting.checked) {
             existingSection.style.display = 'block';
             newSection.style.display = 'none';
-        } else if (createNew.checked) {
+        } else if (createNew && createNew.checked) {
             existingSection.style.display = 'none';
             newSection.style.display = 'block';
         }
     }
 
-    noCommittee.addEventListener('change', updateCommitteeSections);
-    useExisting.addEventListener('change', updateCommitteeSections);
-    createNew.addEventListener('change', updateCommitteeSections);
+    if (noCommittee) noCommittee.addEventListener('change', updateCommitteeSections);
+    if (useExisting) useExisting.addEventListener('change', updateCommitteeSections);
+    if (createNew) createNew.addEventListener('change', updateCommitteeSections);
     
     // Initialiser l'affichage au chargement
     updateCommitteeSections();
@@ -524,36 +542,155 @@ document.addEventListener('DOMContentLoaded', function() {
     const createTermsCheckbox = document.getElementById('create_terms_of_reference');
     const termsFields = document.getElementById('terms_fields');
 
-    createTermsCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            termsFields.style.display = 'block';
-        } else {
-            termsFields.style.display = 'none';
-        }
-    });
+    if (createTermsCheckbox && termsFields) {
+        createTermsCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                termsFields.style.display = 'block';
+                // Validation du pays hôte si onglet actif
+                const hostCountryInput = document.querySelector('input[name="terms_host_country"]');
+                if (hostCountryInput && !hostCountryInput.value.trim()) {
+                    hostCountryInput.focus();
+                }
+            } else {
+                termsFields.style.display = 'none';
+            }
+        });
+    }
 
-    // Validation des onglets avant soumission
-    const form = document.getElementById('meetingForm');
+    // Validation des onglets avant soumission avec messages spécifiques
     form.addEventListener('submit', function(e) {
-        // Validation basique - vous pouvez ajouter plus de validations ici
-        const title = document.querySelector('input[name="title"]').value;
-        if (!title.trim()) {
+        let isValid = true;
+        let errorMessage = '';
+        let errorTab = 'general';
+
+        // Validation onglet général
+        const title = document.querySelector('input[name="title"]');
+        const meetingType = document.querySelector('select[name="meeting_type_id"]');
+        const date = document.querySelector('input[name="date"]');
+        const time = document.querySelector('input[name="time"]');
+        
+        if (!title || !title.value.trim()) {
+            isValid = false;
+            errorMessage = 'Le titre de la réunion est obligatoire.';
+            errorTab = 'general';
+        } else if (!meetingType || !meetingType.value) {
+            isValid = false;
+            errorMessage = 'Le type de réunion est obligatoire.';
+            errorTab = 'general';
+        } else if (!date || !date.value) {
+            isValid = false;
+            errorMessage = 'La date de la réunion est obligatoire.';
+            errorTab = 'general';
+        } else if (!time || !time.value) {
+            isValid = false;
+            errorMessage = 'L\'heure de la réunion est obligatoire.';
+            errorTab = 'general';
+        }
+
+        // Validation onglet comité
+        if (isValid && useExisting && useExisting.checked) {
+            const committeeSelect = document.getElementById('organization_committee_select');
+            if (committeeSelect && !committeeSelect.value) {
+                isValid = false;
+                errorMessage = 'Veuillez sélectionner un comité d\'organisation ou choisir une autre option.';
+                errorTab = 'committee';
+            }
+        }
+
+        if (isValid && createNew && createNew.checked) {
+            const newCommitteeName = document.querySelector('input[name="new_committee_name"]');
+            if (newCommitteeName && !newCommitteeName.value.trim()) {
+                isValid = false;
+                errorMessage = 'Le nom du nouveau comité d\'organisation est obligatoire.';
+                errorTab = 'committee';
+            }
+        }
+
+        // Validation onglet cahier des charges
+        if (isValid && createTermsCheckbox && createTermsCheckbox.checked) {
+            const hostCountry = document.querySelector('input[name="terms_host_country"]');
+            if (hostCountry && !hostCountry.value.trim()) {
+                isValid = false;
+                errorMessage = 'Le pays hôte est obligatoire pour créer un cahier des charges.';
+                errorTab = 'terms';
+            }
+        }
+
+        if (!isValid) {
             e.preventDefault();
-            alert('Veuillez remplir au moins le titre de la réunion.');
-            // Activer l'onglet général
-            document.getElementById('general-tab').click();
+            // Afficher l'erreur
+            if (!document.querySelector('.alert-danger')) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <strong>Erreur de validation :</strong> ${errorMessage}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                form.insertBefore(alertDiv, form.firstChild);
+            }
+            
+            // Activer l'onglet avec l'erreur
+            const tabButton = document.querySelector(`#${errorTab}-tab`);
+            if (tabButton) {
+                const tab = new bootstrap.Tab(tabButton);
+                tab.show();
+            }
+            
             return false;
+        }
+
+        // Afficher message de confirmation avant soumission
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement en cours...';
+            submitBtn.disabled = true;
         }
     });
 
     // Bouton "Enregistrer comme brouillon"
-    document.getElementById('saveDraftBtn').addEventListener('click', function() {
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'status';
-        statusInput.value = 'draft';
-        form.appendChild(statusInput);
-        form.submit();
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', function() {
+            // Validation minimale pour brouillon
+            const title = document.querySelector('input[name="title"]');
+            if (!title || !title.value.trim()) {
+                alert('Veuillez remplir au moins le titre de la réunion pour enregistrer un brouillon.');
+                const tabButton = document.querySelector('#general-tab');
+                if (tabButton) {
+                    const tab = new bootstrap.Tab(tabButton);
+                    tab.show();
+                }
+                return false;
+            }
+
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = 'draft';
+            form.appendChild(statusInput);
+            
+            // Message de confirmation
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement du brouillon...';
+            this.disabled = true;
+            form.submit();
+        });
+    }
+
+    // Sauvegarder l'onglet actif avant soumission
+    const tabs = document.querySelectorAll('#meetingTabs button[data-bs-toggle="tab"]');
+    tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function() {
+            const activeTab = this.getAttribute('data-bs-target').replace('#', '');
+            let hiddenInput = document.querySelector('input[name="active_tab"]');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'active_tab';
+                form.appendChild(hiddenInput);
+            }
+            hiddenInput.value = activeTab;
+        });
     });
 
     // Afficher les informations du comité sélectionné
@@ -571,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const hostCountry = selectedOption.getAttribute('data-host-country');
                 const membersCount = selectedOption.getAttribute('data-members-count');
                 
-                let html = `<h6 class="mb-2">${name}</h6>`;
+                let html = `<h6 class="mb-2">${name || 'Comité sélectionné'}</h6>`;
                 
                 if (description) {
                     html += `<p class="text-muted small mb-2">${description}</p>`;
@@ -581,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += `<p class="mb-2"><i class="bi bi-geo-alt"></i> <strong>Pays hôte :</strong> ${hostCountry}</p>`;
                 }
                 
-                html += `<p class="mb-0"><i class="bi bi-people"></i> <strong>Membres :</strong> ${membersCount} membre${membersCount > 1 ? 's' : ''}</p>`;
+                html += `<p class="mb-0"><i class="bi bi-people"></i> <strong>Membres :</strong> ${membersCount || 0} membre${membersCount > 1 ? 's' : ''}</p>`;
                 
                 if (membersCount == 0) {
                     html += `<div class="alert alert-warning mt-2 mb-0"><i class="bi bi-exclamation-triangle"></i> Aucun membre n'a encore été ajouté à ce comité.</div>`;
@@ -599,6 +736,29 @@ document.addEventListener('DOMContentLoaded', function() {
             committeeSelect.dispatchEvent(new Event('change'));
         }
     }
+
+    // Afficher les messages de succès de session s'ils existent
+    @if(session('success'))
+        const successAlert = document.createElement('div');
+        successAlert.className = 'alert alert-success alert-dismissible fade show';
+        successAlert.innerHTML = `
+            <i class="bi bi-check-circle"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        form.insertBefore(successAlert, form.firstChild);
+        
+        // Activer l'onglet approprié si spécifié
+        @if(session('active_tab'))
+            const activeTabFromSession = '{{ session("active_tab") }}';
+            if (activeTabFromSession && activeTabFromSession !== 'general') {
+                const tabButton = document.querySelector(`#${activeTabFromSession}-tab`);
+                if (tabButton) {
+                    const tab = new bootstrap.Tab(tabButton);
+                    tab.show();
+                }
+            }
+        @endif
+    @endif
 });
 </script>
 @endpush

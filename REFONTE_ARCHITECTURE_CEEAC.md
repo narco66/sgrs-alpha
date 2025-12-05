@@ -171,3 +171,6 @@ Pour toute question sur cette refonte, consulter :
 - Les contrôleurs dans `app/Http/Controllers/`
 - Les migrations dans `database/migrations/`
 
+
+
+

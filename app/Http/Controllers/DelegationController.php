@@ -9,10 +9,11 @@ use App\Models\DelegationMember;
 use App\Models\Meeting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Contrôleur pour la gestion des délégations institutionnelles
- * 
+ *
  * Conforme au modèle CEEAC : participation par délégations
  */
 class DelegationController extends Controller
@@ -53,19 +54,29 @@ class DelegationController extends Controller
      */
     public function create(Request $request)
     {
+        // Vérification des droits d'accès
+        $this->authorize('create', Delegation::class);
+
         $meetingId = $request->get('meeting_id');
-        
-        // Si un meeting_id est fourni, vérifier qu'il existe
+
+        // Si un meeting_id est fourni, vérifier qu'il existe et que l'utilisateur a les droits
         $meeting = null;
         if ($meetingId) {
             $meeting = Meeting::find($meetingId);
             if (!$meeting) {
                 return redirect()
                     ->route('delegations.index')
-                    ->with('error', 'La réunion spécifiée n\'existe pas.');
+                    ->with('error', '<div class="d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i><div><strong>Erreur</strong><br>La réunion spécifiée n\'existe pas.</div></div>');
+            }
+
+            // Vérifier que l'utilisateur peut modifier cette réunion
+            if (!$request->user()->can('update', $meeting) && !$request->user()->can('delegations.create')) {
+                return redirect()
+                    ->route('delegations.index')
+                    ->with('error', '<div class="d-flex align-items-center"><i class="bi bi-shield-exclamation text-danger me-2 fs-5"></i><div><strong>Accès refusé</strong><br>Vous n\'avez pas les droits nécessaires pour créer une délégation pour cette réunion.</div></div>');
             }
         }
-        
+
         return view('delegations.create', [
             'delegation' => new Delegation(),
             'meetings'   => Meeting::orderByDesc('start_at')->take(50)->get(),
@@ -79,14 +90,28 @@ class DelegationController extends Controller
      */
     public function store(StoreDelegationRequest $request)
     {
+        // Double vérification des droits
+        $this->authorize('create', Delegation::class);
+
         try {
-            \Log::info('Début création délégation', ['request_data' => $request->except(['_token', 'members'])]);
+            \Log::info('=== DÉBUT CRÉATION DÉLÉGATION ===', [
+                'user_id' => $request->user()->id,
+                'meeting_id' => $request->input('meeting_id'),
+                'request_data' => $request->except(['_token', 'members']),
+                'members_count' => count($request->input('members', []))
+            ]);
             
             $data = $request->validated();
             $membersData = $request->input('members', []);
             
-            \Log::info('Données validées', ['data' => $data]);
-            
+            \Log::info('Données validées par FormRequest', [
+                'data_keys' => array_keys($data),
+                'meeting_id' => $data['meeting_id'] ?? null,
+                'entity_type' => $data['entity_type'] ?? null,
+                'title' => $data['title'] ?? null,
+                'members_count' => count($membersData)
+            ]);
+
             // Validation manuelle des champs conditionnels
             $entityType = $data['entity_type'] ?? null;
             if (in_array($entityType, ['state_member', 'other']) && empty($data['country'])) {
@@ -94,26 +119,42 @@ class DelegationController extends Controller
                     ->withInput()
                     ->withErrors(['country' => 'Le champ pays est requis pour ce type d\'entité.']);
             }
-            
+
             if (in_array($entityType, ['international_organization', 'technical_partner', 'financial_partner']) && empty($data['organization_name'])) {
                 return back()
                     ->withInput()
                     ->withErrors(['organization_name' => 'Le nom de l\'organisation est requis pour ce type d\'entité.']);
             }
-            
+
             // S'assurer que is_active a une valeur par défaut
             if (!isset($data['is_active'])) {
                 $data['is_active'] = true;
             }
-            
+
             // S'assurer que participation_status a une valeur par défaut
             if (!isset($data['participation_status'])) {
                 $data['participation_status'] = 'invited';
             }
+
+            \Log::info('Tentative de création de la délégation en base de données', ['data' => $data]);
             
-            \Log::info('Création de la délégation', ['data' => $data]);
-            $delegation = Delegation::create($data);
-            \Log::info('Délégation créée', ['delegation_id' => $delegation->id]);
+            try {
+                $delegation = Delegation::create($data);
+                \Log::info('✅ DÉLÉGATION CRÉÉE AVEC SUCCÈS', [
+                    'delegation_id' => $delegation->id,
+                    'title' => $delegation->title,
+                    'meeting_id' => $delegation->meeting_id,
+                    'entity_type' => $delegation->entity_type
+                ]);
+            } catch (\Exception $createException) {
+                \Log::error('❌ ERREUR LORS DE LA CRÉATION DE LA DÉLÉGATION', [
+                    'message' => $createException->getMessage(),
+                    'file' => $createException->getFile(),
+                    'line' => $createException->getLine(),
+                    'data' => $data
+                ]);
+                throw $createException;
+            }
 
             // Créer les membres de la délégation
             if (!empty($membersData) && is_array($membersData)) {
@@ -122,12 +163,37 @@ class DelegationController extends Controller
                     $firstName = trim($memberData['first_name'] ?? '');
                     $lastName = trim($memberData['last_name'] ?? '');
                     $email = trim($memberData['email'] ?? '');
-                    
+
                     if (!empty($firstName) && !empty($lastName) && !empty($email)) {
                         // Valider l'email
                         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                             continue; // Skip invalid emails
                         }
+
+                        // Vérifier que le statut est valide selon l'enum de la migration
+                        $validStatuses = ['invited', 'confirmed', 'present', 'absent', 'excused'];
+                        $memberStatus = !empty($memberData['status']) ? $memberData['status'] : 'invited';
+                        if (!in_array($memberStatus, $validStatuses)) {
+                            $memberStatus = 'invited'; // Valeur par défaut valide
+                        }
+                        
+                        // Vérifier que le rôle est valide selon l'enum de la migration
+                        $validRoles = ['head', 'member', 'expert', 'observer', 'secretary'];
+                        $memberRole = !empty($memberData['role']) ? $memberData['role'] : 'member';
+                        if (!in_array($memberRole, $validRoles)) {
+                            $memberRole = 'member'; // Valeur par défaut valide
+                        }
+                        
+                        \Log::info('Création d\'un membre de délégation', [
+                            'delegation_id' => $delegation->id,
+                            'member_data' => [
+                                'first_name' => $firstName,
+                                'last_name' => $lastName,
+                                'email' => $email,
+                                'role' => $memberRole,
+                                'status' => $memberStatus,
+                            ]
+                        ]);
                         
                         DelegationMember::create([
                             'delegation_id' => $delegation->id,
@@ -139,10 +205,12 @@ class DelegationController extends Controller
                             'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
                             'institution' => !empty($memberData['institution']) ? trim($memberData['institution']) : null,
                             'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
-                            'role' => !empty($memberData['role']) ? $memberData['role'] : 'member',
-                            'status' => !empty($memberData['status']) ? $memberData['status'] : 'pending',
+                            'role' => $memberRole,
+                            'status' => $memberStatus,
                             'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
                         ]);
+                        
+                        \Log::info('Membre créé avec succès', ['delegation_id' => $delegation->id, 'email' => $email]);
                     }
                 }
             }
@@ -154,13 +222,13 @@ class DelegationController extends Controller
                     return !empty($m['first_name']) && !empty($m['last_name']) && !empty($m['email']);
                 }));
             }
-            
+
             // Rediriger vers la réunion si créée depuis une réunion, sinon vers la délégation
             $redirectToMeeting = $request->input('redirect_to_meeting');
-            $redirectRoute = $redirectToMeeting 
+            $redirectRoute = $redirectToMeeting
                 ? route('meetings.show', $delegation->meeting_id)
                 : route('delegations.show', $delegation);
-            
+
             // Message de succès détaillé
             if ($redirectToMeeting) {
                 // Message pour création depuis une réunion
@@ -191,9 +259,9 @@ class DelegationController extends Controller
                 $message .= '</div>';
                 $message .= '</div>';
             }
-            
+
             \Log::info('Redirection', ['route' => $redirectRoute, 'meeting_id' => $delegation->meeting_id, 'members_count' => $membersCount]);
-            
+
             return redirect($redirectRoute)
                 ->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -201,7 +269,7 @@ class DelegationController extends Controller
                 'errors' => $e->errors(),
                 'request_data' => $request->except(['_token', 'members'])
             ]);
-            
+
             return back()
                 ->withInput()
                 ->withErrors($e->errors());
@@ -213,7 +281,7 @@ class DelegationController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->except(['_token', 'members'])
             ]);
-            
+
             $errorMessage = '<div class="d-flex align-items-center">';
             $errorMessage .= '<i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i>';
             $errorMessage .= '<div>';
@@ -221,7 +289,7 @@ class DelegationController extends Controller
             $errorMessage .= 'Une erreur est survenue. Veuillez vérifier les informations saisies et réessayer.';
             $errorMessage .= '</div>';
             $errorMessage .= '</div>';
-            
+
             return back()
                 ->withInput()
                 ->with('error', $errorMessage);
@@ -262,74 +330,162 @@ class DelegationController extends Controller
      */
     public function update(UpdateDelegationRequest $request, Delegation $delegation)
     {
-        $data = $request->validated();
-        $membersData = $request->input('members', []);
-        
-        $delegation->update($data);
+        // Double vérification des droits
+        $this->authorize('update', $delegation);
 
-        // Récupérer les IDs des membres existants qui doivent être conservés
-        $existingMemberIds = [];
-        $newMembers = [];
-        $updatedMembers = [];
+        try {
+            $data = $request->validated();
+            $membersData = $request->input('members', []);
 
-        foreach ($membersData as $memberData) {
-            if (isset($memberData['id'])) {
-                // Membre existant à mettre à jour
-                $existingMemberIds[] = $memberData['id'];
-                if (!empty($memberData['first_name']) && !empty($memberData['last_name']) && !empty($memberData['email'])) {
-                    $updatedMembers[] = $memberData;
-                }
-            } else {
-                // Nouveau membre à créer
-                if (!empty($memberData['first_name']) && !empty($memberData['last_name']) && !empty($memberData['email'])) {
-                    $newMembers[] = $memberData;
+            $delegation->update($data);
+
+            // Récupérer les IDs des membres existants qui doivent être conservés
+            $existingMemberIds = [];
+            $newMembers = [];
+            $updatedMembers = [];
+            $deletedMembersCount = 0;
+
+            // Compter les membres existants avant suppression
+            $existingMembersCount = $delegation->members()->count();
+
+            foreach ($membersData as $memberData) {
+                if (isset($memberData['id'])) {
+                    // Membre existant à mettre à jour
+                    $existingMemberIds[] = $memberData['id'];
+                    $firstName = trim($memberData['first_name'] ?? '');
+                    $lastName = trim($memberData['last_name'] ?? '');
+                    $email = trim($memberData['email'] ?? '');
+
+                    if (!empty($firstName) && !empty($lastName) && !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $updatedMembers[] = $memberData;
+                    }
+                } else {
+                    // Nouveau membre à créer
+                    $firstName = trim($memberData['first_name'] ?? '');
+                    $lastName = trim($memberData['last_name'] ?? '');
+                    $email = trim($memberData['email'] ?? '');
+
+                    if (!empty($firstName) && !empty($lastName) && !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $newMembers[] = $memberData;
+                    }
                 }
             }
-        }
 
-        // Supprimer les membres qui ne sont plus dans la liste
-        $delegation->members()->whereNotIn('id', $existingMemberIds)->delete();
+            // Supprimer les membres qui ne sont plus dans la liste
+            $deletedMembers = $delegation->members()->whereNotIn('id', $existingMemberIds)->get();
+            $deletedMembersCount = $deletedMembers->count();
+            $delegation->members()->whereNotIn('id', $existingMemberIds)->delete();
 
-        // Mettre à jour les membres existants
-        foreach ($updatedMembers as $memberData) {
-            DelegationMember::where('id', $memberData['id'])
-                ->where('delegation_id', $delegation->id)
-                ->update([
-                    'first_name' => $memberData['first_name'],
-                    'last_name' => $memberData['last_name'],
-                    'email' => $memberData['email'],
-                    'phone' => $memberData['phone'] ?? null,
-                    'position' => $memberData['position'] ?? null,
-                    'title' => $memberData['title'] ?? null,
-                    'institution' => $memberData['institution'] ?? null,
-                    'department' => $memberData['department'] ?? null,
-                    'role' => $memberData['role'] ?? 'member',
-                    'status' => $memberData['status'] ?? 'pending',
-                    'notes' => $memberData['notes'] ?? null,
+            // Mettre à jour les membres existants
+            foreach ($updatedMembers as $memberData) {
+                DelegationMember::where('id', $memberData['id'])
+                    ->where('delegation_id', $delegation->id)
+                    ->update([
+                        'first_name' => trim($memberData['first_name']),
+                        'last_name' => trim($memberData['last_name']),
+                        'email' => trim($memberData['email']),
+                        'phone' => !empty($memberData['phone']) ? trim($memberData['phone']) : null,
+                        'position' => !empty($memberData['position']) ? trim($memberData['position']) : null,
+                        'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
+                        'institution' => !empty($memberData['institution']) ? trim($memberData['institution']) : null,
+                        'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
+                        'role' => in_array($memberData['role'] ?? 'member', ['head', 'member', 'expert', 'observer', 'secretary']) 
+                            ? ($memberData['role'] ?? 'member') 
+                            : 'member',
+                        'status' => in_array($memberData['status'] ?? 'invited', ['invited', 'confirmed', 'present', 'absent', 'excused']) 
+                            ? ($memberData['status'] ?? 'invited') 
+                            : 'invited',
+                        'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
+                    ]);
+            }
+
+            // Créer les nouveaux membres
+            foreach ($newMembers as $memberData) {
+                // Vérifier que le statut est valide selon l'enum de la migration
+                $validStatuses = ['invited', 'confirmed', 'present', 'absent', 'excused'];
+                $memberStatus = !empty($memberData['status']) ? $memberData['status'] : 'invited';
+                if (!in_array($memberStatus, $validStatuses)) {
+                    $memberStatus = 'invited'; // Valeur par défaut valide
+                }
+                
+                // Vérifier que le rôle est valide selon l'enum de la migration
+                $validRoles = ['head', 'member', 'expert', 'observer', 'secretary'];
+                $memberRole = !empty($memberData['role']) ? $memberData['role'] : 'member';
+                if (!in_array($memberRole, $validRoles)) {
+                    $memberRole = 'member'; // Valeur par défaut valide
+                }
+                
+                DelegationMember::create([
+                    'delegation_id' => $delegation->id,
+                    'first_name' => trim($memberData['first_name']),
+                    'last_name' => trim($memberData['last_name']),
+                    'email' => trim($memberData['email']),
+                    'phone' => !empty($memberData['phone']) ? trim($memberData['phone']) : null,
+                    'position' => !empty($memberData['position']) ? trim($memberData['position']) : null,
+                    'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
+                    'institution' => !empty($memberData['institution']) ? trim($memberData['institution']) : null,
+                    'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
+                    'role' => $memberRole,
+                    'status' => $memberStatus,
+                    'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
                 ]);
-        }
+            }
 
-        // Créer les nouveaux membres
-        foreach ($newMembers as $memberData) {
-            DelegationMember::create([
-                'delegation_id' => $delegation->id,
-                'first_name' => $memberData['first_name'],
-                'last_name' => $memberData['last_name'],
-                'email' => $memberData['email'],
-                'phone' => $memberData['phone'] ?? null,
-                'position' => $memberData['position'] ?? null,
-                'title' => $memberData['title'] ?? null,
-                'institution' => $memberData['institution'] ?? null,
-                'department' => $memberData['department'] ?? null,
-                'role' => $memberData['role'] ?? 'member',
-                'status' => $memberData['status'] ?? 'pending',
-                'notes' => $memberData['notes'] ?? null,
+            // Construire le message de succès détaillé
+            $successMessages = [];
+            $successMessages[] = '<div class="d-flex align-items-center">';
+            $successMessages[] = '<i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>';
+            $successMessages[] = '<div>';
+            $successMessages[] = '<strong>✓ La délégation a été mise à jour avec succès !</strong><br>';
+
+            if (count($updatedMembers) > 0) {
+                $successMessages[] = '✓ <strong>' . count($updatedMembers) . ' membre' . (count($updatedMembers) > 1 ? 's' : '') . '</strong> ' . (count($updatedMembers) > 1 ? 'ont été' : 'a été') . ' mis' . (count($updatedMembers) > 1 ? 's' : '') . ' à jour.<br>';
+            }
+
+            if (count($newMembers) > 0) {
+                $successMessages[] = '✓ <strong>' . count($newMembers) . ' nouveau' . (count($newMembers) > 1 ? 'x' : '') . ' membre' . (count($newMembers) > 1 ? 's' : '') . '</strong> ' . (count($newMembers) > 1 ? 'ont été' : 'a été') . ' ajouté' . (count($newMembers) > 1 ? 's' : '') . '.<br>';
+            }
+
+            if ($deletedMembersCount > 0) {
+                $successMessages[] = '✓ <strong>' . $deletedMembersCount . ' membre' . ($deletedMembersCount > 1 ? 's' : '') . '</strong> ' . ($deletedMembersCount > 1 ? 'ont été' : 'a été') . ' supprimé' . ($deletedMembersCount > 1 ? 's' : '') . '.<br>';
+            }
+
+            $successMessages[] = '</div>';
+            $successMessages[] = '</div>';
+
+            $redirectToMeeting = $request->input('redirect_to_meeting');
+            $redirectRoute = $redirectToMeeting && $delegation->meeting_id
+                ? route('meetings.show', $delegation->meeting_id)
+                : route('delegations.show', $delegation);
+
+            return redirect($redirectRoute)
+                ->with('success', implode('', $successMessages));
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('error', '<div class="d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i><div><strong>Erreur de validation</strong><br>Veuillez vérifier les informations saisies.</div></div>');
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la mise à jour de la délégation', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'delegation_id' => $delegation->id ?? null,
             ]);
-        }
 
-        return redirect()
-            ->route('delegations.show', $delegation)
-            ->with('success', 'La délégation a été mise à jour avec succès.');
+            $errorMessage = '<div class="d-flex align-items-center">';
+            $errorMessage .= '<i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i>';
+            $errorMessage .= '<div>';
+            $errorMessage .= '<strong>Erreur lors de la mise à jour</strong><br>';
+            $errorMessage .= 'Une erreur est survenue. Veuillez vérifier les informations saisies et réessayer.';
+            $errorMessage .= '</div>';
+            $errorMessage .= '</div>';
+
+            return back()
+                ->withInput()
+                ->with('error', $errorMessage);
+        }
     }
 
     /**

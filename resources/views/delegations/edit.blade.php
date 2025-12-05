@@ -26,6 +26,9 @@
 
         <form method="POST" action="{{ route('delegations.update', $delegation) }}">
             @method('PUT')
+            @if(request('redirect_to_meeting') || ($delegation->meeting_id && request('from_meeting')))
+                <input type="hidden" name="redirect_to_meeting" value="1">
+            @endif
             @include('delegations._form')
 
             <div class="mt-4 d-flex justify-content-end gap-2">

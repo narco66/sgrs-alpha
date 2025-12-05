@@ -91,7 +91,8 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
         $recentMeetings = Meeting::with(['room', 'type'])
-            ->orderByDesc('start_at')
+            ->whereNull('deleted_at')
+            ->orderByDesc('created_at')
             ->paginate(5, ['*'], 'recent_page');
 
         /*
