@@ -167,6 +167,13 @@
             justify-content: center;
         }
 
+        /* S'assurer que le contenu est visible par défaut (fallback si JS ne fonctionne pas) */
+        #loginPanel,
+        #loginForm {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         .auth-title {
             font-size: 32px;
             font-weight: 700;
@@ -303,6 +310,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {{-- Scripts spécifiques des vues --}}
+    @stack('scripts')
 </body>
 </html>
 

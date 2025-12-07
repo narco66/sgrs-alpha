@@ -38,6 +38,7 @@ class MeetingFactory extends Factory
             'status'          => MeetingStatus::PLANNED->value,
             'description'     => $this->faker->optional()->paragraph(),
             'agenda'          => $this->faker->optional()->sentence(),
+            'host_country'    => $this->faker->optional()->country(),
             'organizer_id'    => $organizerId,
             'reminder_minutes_before' => 60,
             'created_by'      => $organizerId,

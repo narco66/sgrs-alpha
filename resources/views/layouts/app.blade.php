@@ -1203,13 +1203,6 @@
 
     {{-- Scripts spécifiques (Chart.js, Echo, etc.) injectés par les vues --}}
     @stack('scripts')
-  {{-- Conteneur global pour les toasts (notifications temps réel) --}}
-    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
-        <div id="notification-toast-container" class="toast-container"></div>
-    </div>
-
-    {{-- Scripts spécifiques (Chart.js, Echo, etc.) injectés par les vues --}}
-    @stack('scripts')
 
     {{-- Bootstrap JS (bundle : Popper + Bootstrap) --}}
     <script

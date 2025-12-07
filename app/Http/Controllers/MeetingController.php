@@ -86,7 +86,12 @@ class MeetingController extends Controller
      */
     public function create()
     {
-        $meetingTypes = MeetingType::where('is_active', true)
+        // Inclure le type actuel même s'il est inactif pour éviter qu'il n'apparaisse pas sélectionné
+        $meetingTypes = MeetingType::withTrashed()
+            ->where(function ($query) use ($meeting) {
+                $query->where('is_active', true)
+                      ->orWhere('id', $meeting->meeting_type_id);
+            })
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -159,6 +164,8 @@ class MeetingController extends Controller
             'end_at'                  => $data['end_at'] ?? $endAt,
             'duration_minutes'        => $data['duration_minutes'] ?? null,
             'status'                  => $data['status'] ?? MeetingStatus::DRAFT->value,
+            'configuration'           => $data['configuration'] ?? 'presentiel',
+            'host_country'            => $data['host_country'] ?? null,
             'description'             => $data['description'] ?? null,
             'agenda'                  => $data['agenda'] ?? null,
             'organizer_id'            => Auth::id(),
@@ -334,6 +341,7 @@ class MeetingController extends Controller
             'committees'         => $committees,
             'rooms'              => $rooms,
             'availableCommittees' => $availableCommittees,
+            'availableStatuses'   => MeetingStatus::cases(),
         ]);
     }
 
@@ -380,6 +388,8 @@ class MeetingController extends Controller
             'end_at'                  => $endAt,
             'duration_minutes'        => $data['duration_minutes'] ?? null,
             'status'                  => $data['status'] ?? $meeting->status,
+            'configuration'           => $data['configuration'] ?? $meeting->configuration ?? 'presentiel',
+            'host_country'            => $data['host_country'] ?? $meeting->host_country,
             'description'             => $data['description'] ?? null,
             'agenda'                  => $data['agenda'] ?? null,
             'reminder_minutes_before' => $data['reminder_minutes_before'] ?? $meeting->reminder_minutes_before,

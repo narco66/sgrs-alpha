@@ -6,6 +6,24 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMeetingRequest extends FormRequest
 {
+    /**
+     * Normalize inputs before validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // If a terms of reference is requested but the dedicated host country
+        // is empty, reuse the general host_country to prevent a useless error.
+        if (
+            $this->boolean('create_terms_of_reference') &&
+            !$this->filled('terms_host_country') &&
+            $this->filled('host_country')
+        ) {
+            $this->merge([
+                'terms_host_country' => $this->input('host_country'),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         // L'autorisation fine est gérée par la policy, on autorise ici.
@@ -21,6 +39,7 @@ class StoreMeetingRequest extends FormRequest
             'time'                      => ['required', 'date_format:H:i'],
             'duration_minutes'          => ['required', 'integer', 'min:15', 'max:1440'],
             'configuration'             => ['required', 'in:presentiel,hybride,visioconference'],
+            'host_country'              => ['nullable', 'string', 'max:255'],
             'room_id'                   => ['nullable', 'exists:salles,id'],
             'description'               => ['nullable', 'string', 'max:5000'],
             'agenda'                    => ['nullable', 'string', 'max:10000'],

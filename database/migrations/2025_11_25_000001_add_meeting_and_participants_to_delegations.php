@@ -9,12 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('delegations', function (Blueprint $table) {
-            $table->foreignId('meeting_id')
-                ->nullable()
-                ->after('address')
-                ->constrained('reunions')
-                ->cascadeOnUpdate()
-                ->nullOnDelete();
+            if (!Schema::hasColumn('delegations', 'meeting_id')) {
+                $table->foreignId('meeting_id')
+                    ->nullable()
+                    ->after('notes')
+                    ->constrained('reunions')
+                    ->cascadeOnUpdate()
+                    ->nullOnDelete();
+            }
         });
 
         Schema::create('delegation_participants', function (Blueprint $table) {

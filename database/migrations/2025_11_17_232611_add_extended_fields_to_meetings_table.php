@@ -13,21 +13,11 @@ return new class extends Migration {
                 $table->dateTime('end_at')->nullable()->after('start_at');
             }
 
-            // Durée en minutes
-            if (!Schema::hasColumn('reunions', 'duration_minutes')) {
-                $table->unsignedInteger('duration_minutes')->nullable()->after('end_at');
-            }
+            // Note: meeting_type_id, room_id, duration_minutes, status, reminder_minutes_before
+            // et created_by existent déjà dans la migration create_meetings_table
+            // On ne les ajoute pas ici pour éviter les conflits
 
-            // Type de réunion
-            if (!Schema::hasColumn('reunions', 'meeting_type_id')) {
-                $table->foreignId('meeting_type_id')
-                    ->nullable()
-                    ->after('title')
-                    ->constrained('types_reunions')
-                    ->nullOnDelete();
-            }
-
-            // Comité
+            // Comité (peut ne pas exister si la migration add_meeting_type_and_committee n'a pas été exécutée)
             if (!Schema::hasColumn('reunions', 'committee_id')) {
                 $table->foreignId('committee_id')
                     ->nullable()
@@ -36,36 +26,13 @@ return new class extends Migration {
                     ->nullOnDelete();
             }
 
-            // Salle
-            if (!Schema::hasColumn('reunions', 'room_id')) {
-                $table->foreignId('room_id')
-                    ->nullable()
-                    ->after('committee_id')
-                    ->constrained('salles')
-                    ->nullOnDelete();
-            }
-
-            // Statut
-            if (!Schema::hasColumn('reunions', 'status')) {
-                $table->string('status', 50)
-                    ->default('draft')
-                    ->after('duration_minutes');
-            }
-
-            // Organisateur
+            // Organisateur (alias de created_by, peut être ajouté pour compatibilité)
             if (!Schema::hasColumn('reunions', 'organizer_id')) {
                 $table->foreignId('organizer_id')
                     ->nullable()
                     ->after('status')
                     ->constrained('utilisateurs')
                     ->nullOnDelete();
-            }
-
-            // Rappel (minutes avant la réunion)
-            if (!Schema::hasColumn('reunions', 'reminder_minutes_before')) {
-                $table->unsignedInteger('reminder_minutes_before')
-                    ->default(0)
-                    ->after('organizer_id');
             }
         });
     }

@@ -51,7 +51,7 @@
                 @enderror
             </div>
 
-            <div class="col-md-6" id="country_field_wrapper" style="display: none;">
+            <div class="col-md-6" id="country_field_wrapper">
                 <label class="form-label">Pays <span class="text-danger" id="country_required_span">*</span></label>
                 <input type="text" 
                        name="country" 

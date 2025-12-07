@@ -81,8 +81,6 @@ Route::middleware(['auth', 'verified'])
         Route::resource('meetings', MeetingController::class);
         Route::resource('participants', ParticipantController::class);
 
-        Route::post('/meetings/{meeting}/status', [MeetingController::class, 'changeStatus'])
-            ->name('meetings.change-status');
         Route::post('/meetings/{meeting}/notify', [MeetingController::class, 'notifyParticipants'])
             ->name('meetings.notify');
         Route::get('/meetings/{meeting}/pdf', [MeetingController::class, 'exportPdf'])
@@ -161,8 +159,6 @@ Route::middleware(['auth', 'verified'])
         // Changement de statut (workflow)
         Route::post('meetings/{meeting}/status', [MeetingController::class, 'changeStatus'])
             ->name('meetings.change-status');
-
-        Route::resource('participants', ParticipantController::class);
         Route::prefix('meetings/{meeting}')->group(function () {
             Route::get('participants', [MeetingParticipantController::class, 'index'])
                 ->name('meetings.participants.index');

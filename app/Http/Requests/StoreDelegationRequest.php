@@ -7,6 +7,26 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreDelegationRequest extends FormRequest
 {
+    /**
+     * Normalize inputs before validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $entityType = $this->input('entity_type');
+
+        // For organization-based entities, if organization_name is empty but a title
+        // is provided, reuse the title to satisfy validation without forcing double entry.
+        if (
+            in_array($entityType, ['international_organization', 'technical_partner', 'financial_partner']) &&
+            !$this->filled('organization_name') &&
+            $this->filled('title')
+        ) {
+            $this->merge([
+                'organization_name' => $this->input('title'),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         $user = $this->user();

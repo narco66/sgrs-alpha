@@ -159,6 +159,10 @@
                         <div class="col-md-6">
                             <label class="form-label small mb-1">Changer le statut avec un commentaire</label>
                             <select name="status" class="form-select form-select-sm">
+                                {{-- Pré-sélectionne le statut actuel pour affichage et modification éventuelle --}}
+                                <option value="{{ $currentStatus }}" selected>
+                                    {{ $statusLabels[$currentStatus] ?? ucfirst($currentStatus) }}
+                                </option>
                                 @foreach($statusLabels as $value => $label)
                                     @if($value !== $currentStatus)
                                         <option value="{{ $value }}">{{ $label }}</option>
@@ -239,13 +243,19 @@
                 </div>
 
                 <div class="row mb-2">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="text-muted small">Salle</div>
                         <div class="fw-semibold">
                             {{ $roomName ?? 'Non attribuée' }}
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <div class="text-muted small">Pays hôte</div>
+                        <div class="fw-semibold">
+                            {{ $meeting->host_country ?? 'Non renseigné' }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="text-muted small">Rappel</div>
                         <div class="fw-semibold">
                             @php

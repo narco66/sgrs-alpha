@@ -145,7 +145,7 @@
                                 @enderror
                             </div>
 
-                            {{-- Configuration et Salle --}}
+                            {{-- Configuration, pays hôte et Salle --}}
                             <div class="col-md-6">
                                 <label class="form-label">Configuration <span class="text-danger">*</span></label>
                                 <select name="configuration" class="form-select @error('configuration') is-invalid @enderror" required>
@@ -156,6 +156,19 @@
                                 @error('configuration')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Pays hôte</label>
+                                <input type="text"
+                                       name="host_country"
+                                       class="form-control @error('host_country') is-invalid @enderror"
+                                       placeholder="Ex: République du Congo"
+                                       value="{{ old('host_country') }}">
+                                @error('host_country')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Indiquez le pays hôte si la réunion se tient dans un État membre.</div>
                             </div>
 
                             <div class="col-md-6">
@@ -374,7 +387,7 @@
                                            name="terms_host_country" 
                                            class="form-control @error('terms_host_country') is-invalid @enderror" 
                                            placeholder="Ex: République du Congo"
-                                           value="{{ old('terms_host_country') }}">
+                                          value="{{ old('terms_host_country', old('host_country')) }}">
                                     @error('terms_host_country')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -541,11 +554,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gestion de l'affichage des champs du cahier des charges
     const createTermsCheckbox = document.getElementById('create_terms_of_reference');
     const termsFields = document.getElementById('terms_fields');
+    const generalHostInput = document.querySelector('input[name=\"host_country\"]');
+    const termsHostInput = document.querySelector('input[name=\"terms_host_country\"]');
+
+    function syncHostCountryToTerms() {
+        if (!createTermsCheckbox || !createTermsCheckbox.checked || !termsHostInput) {
+            return;
+        }
+
+        const hostValue = (generalHostInput?.value || '').trim();
+        const currentTermsValue = (termsHostInput.value || '').trim();
+        const autoFilledValue = termsHostInput.dataset.autoFilledValue || '';
+
+        // Auto-fill only if empty or previously auto-filled to avoid overriding user edits.
+        if (hostValue && (currentTermsValue === '' || currentTermsValue === autoFilledValue)) {
+            termsHostInput.value = hostValue;
+            termsHostInput.dataset.autoFilledValue = hostValue;
+        }
+    }
 
     if (createTermsCheckbox && termsFields) {
         createTermsCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 termsFields.style.display = 'block';
+                syncHostCountryToTerms();
                 // Validation du pays hôte si onglet actif
                 const hostCountryInput = document.querySelector('input[name="terms_host_country"]');
                 if (hostCountryInput && !hostCountryInput.value.trim()) {
@@ -556,6 +588,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    if (generalHostInput) {
+        generalHostInput.addEventListener('input', syncHostCountryToTerms);
+        generalHostInput.addEventListener('change', syncHostCountryToTerms);
+    }
+
+    // Initial sync on load (useful when checkbox is pre-checked or host already saisi).
+    syncHostCountryToTerms();
 
     // Validation des onglets avant soumission avec messages spécifiques
     form.addEventListener('submit', function(e) {

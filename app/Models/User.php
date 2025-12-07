@@ -49,10 +49,12 @@ class User extends Authenticatable
 
     /**
      * Casts automatiques (Laravel 11).
+     * Note: Le cast 'hashed' pour password est retiré car il peut causer des problèmes
+     * avec les mots de passe déjà hashés dans la base de données.
+     * Les mots de passe doivent être hashés explicitement avec Hash::make() lors de la création/mise à jour.
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password'          => 'hashed', // Laravel 11 gère le hashing automatiquement
         'is_active'        => 'boolean',
     ];
 
@@ -141,18 +143,6 @@ class User extends Authenticatable
         return ucwords($value);
     }
 
-    /**
-     * SUPPRIMEZ ou CORRIGEZ ce mutateur - il cause le problème
-     *
-     * Option 1: Supprimez complètement cette fonction
-     * Option 2: Ou corrigez-la comme ceci :
-     */
-    // public function setPasswordAttribute($value)
-    // {
-    //     // Laravel 11 gère déjà le hashing automatiquement avec le cast 'hashed'
-    //     // Donc cette fonction n'est plus nécessaire
-    //     $this->attributes['password'] = $value;
-    // }
 
     /* ============================================================
      |  NOTIFICATIONS

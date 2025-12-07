@@ -24,7 +24,7 @@ class Meeting extends Model
      */
     protected $fillable = [
         'title',
-        'slug',                    // <-- important pour éviter l'erreur sur slug
+        'slug',
         'meeting_type_id',
         'committee_id',
         'room_id',
@@ -32,11 +32,12 @@ class Meeting extends Model
         'end_at',
         'duration_minutes',
         'status',
+        'configuration',
+        'host_country',
         'description',
         'agenda',
         'organizer_id',
         'reminder_minutes_before',
-        // ajoute ici d'autres champs si nécessaire (configuration, created_by, updated_by, ...)
     ];
 
     /**
@@ -77,7 +78,8 @@ class Meeting extends Model
 
     public function type()
     {
-        return $this->belongsTo(MeetingType::class, 'meeting_type_id');
+        // Inclure les types archivés/supprimés pour afficher correctement l'historique
+        return $this->belongsTo(MeetingType::class, 'meeting_type_id')->withTrashed();
     }
 
     public function committee()
