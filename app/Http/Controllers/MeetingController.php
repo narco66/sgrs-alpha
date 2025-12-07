@@ -670,6 +670,120 @@ class MeetingController extends Controller
     }
 
     /**
+     * Export de l'invitation officielle en PDF.
+     */
+    public function exportInvitationPdf(Meeting $meeting, ?array $recipient = null)
+    {
+        $this->authorize('view', $meeting);
+
+        $meeting->load(['type', 'room', 'organizer']);
+
+        $pdf = Pdf::loadView('meetings.pdf-invitation', [
+            'meeting' => $meeting,
+            'recipient' => $recipient,
+        ])->setPaper('A4', 'portrait');
+
+        $fileName = 'invitation-' . ($meeting->slug ?? $meeting->id) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Export de la feuille de présence en PDF.
+     */
+    public function exportAttendancePdf(Meeting $meeting)
+    {
+        $this->authorize('view', $meeting);
+
+        $meeting->load([
+            'type',
+            'room',
+            'organizer',
+            'delegations.members',
+            'organizationCommittee.members.user',
+        ]);
+
+        $pdf = Pdf::loadView('meetings.pdf-attendance', [
+            'meeting' => $meeting,
+        ])->setPaper('A4', 'portrait');
+
+        $fileName = 'feuille-presence-' . ($meeting->slug ?? $meeting->id) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Export du procès-verbal (template) en PDF.
+     */
+    public function exportMinutesPdf(Meeting $meeting)
+    {
+        $this->authorize('view', $meeting);
+
+        $meeting->load([
+            'type',
+            'room',
+            'organizer',
+            'delegations.members',
+            'organizationCommittee.members.user',
+            'documents.type',
+        ]);
+
+        $pdf = Pdf::loadView('meetings.pdf-minutes', [
+            'meeting' => $meeting,
+        ])->setPaper('A4', 'portrait');
+
+        $fileName = 'pv-' . ($meeting->slug ?? $meeting->id) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Export de la note logistique en PDF.
+     */
+    public function exportLogisticsPdf(Meeting $meeting)
+    {
+        $this->authorize('view', $meeting);
+
+        $meeting->load([
+            'type',
+            'room',
+            'organizer',
+            'termsOfReference',
+            'documents.type',
+        ]);
+
+        $pdf = Pdf::loadView('meetings.pdf-logistics', [
+            'meeting' => $meeting,
+        ])->setPaper('A4', 'portrait');
+
+        $fileName = 'note-logistique-' . ($meeting->slug ?? $meeting->id) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Export de l'ordre du jour détaillé en PDF.
+     */
+    public function exportAgendaPdf(Meeting $meeting)
+    {
+        $this->authorize('view', $meeting);
+
+        $meeting->load([
+            'type',
+            'room',
+            'documents.type',
+        ]);
+
+        $pdf = Pdf::loadView('meetings.pdf-agenda', [
+            'meeting' => $meeting,
+        ])->setPaper('A4', 'portrait');
+
+        $fileName = 'ordre-du-jour-' . ($meeting->slug ?? $meeting->id) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
      * Envoi manuel d'une notification par email aux délégations.
      */
     public function notifyParticipants(Meeting $meeting)

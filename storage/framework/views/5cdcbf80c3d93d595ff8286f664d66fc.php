@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
-@section('content')
-@php
+<?php $__env->startSection('content'); ?>
+<?php
     // Statut courant sous forme de chaîne
     // On gère le cas où status est un enum OU une simple chaîne.
     if (is_object($meeting->status) && property_exists($meeting->status, 'value')) {
@@ -65,33 +63,35 @@
     $typeCode     = optional($meeting->type)->code;
     $creatorName  = optional($meeting->creator)->name;
     $roomName     = optional($meeting->room)->name;
-@endphp
+?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="mb-1">{{ $meeting->title }}</h4>
+        <h4 class="mb-1"><?php echo e($meeting->title); ?></h4>
         <p class="text-muted mb-0">
-            @if($typeName)
-                {{ $typeName }} •
-            @endif
-            Créée par {{ $creatorName ?? 'Non renseigné' }}
+            <?php if($typeName): ?>
+                <?php echo e($typeName); ?> •
+            <?php endif; ?>
+            Créée par <?php echo e($creatorName ?? 'Non renseigné'); ?>
+
         </p>
     </div>
     <div class="text-end">
         <div class="mb-2">
-            <span class="badge rounded-pill {{ $statusBadges[$currentStatus] ?? 'bg-secondary' }}">
-                {{ $statusLabels[$currentStatus] ?? ucfirst($currentStatus) }}
+            <span class="badge rounded-pill <?php echo e($statusBadges[$currentStatus] ?? 'bg-secondary'); ?>">
+                <?php echo e($statusLabels[$currentStatus] ?? ucfirst($currentStatus)); ?>
+
             </span>
         </div>
 
         <div class="d-flex flex-wrap justify-content-end gap-2">
-            @can('update', $meeting)
-                <a href="{{ route('meetings.edit', $meeting) }}" class="btn btn-sm btn-outline-secondary">
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $meeting)): ?>
+                <a href="<?php echo e(route('meetings.edit', $meeting)); ?>" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-pencil me-1"></i> Modifier
                 </a>
-            @endcan
+            <?php endif; ?>
             
-            {{-- Menu déroulant pour les exports PDF --}}
+            
             <div class="dropdown">
                 <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-file-earmark-pdf me-1"></i> Exports PDF
@@ -99,82 +99,83 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><h6 class="dropdown-header">Documents de réunion</h6></li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('meetings.pdf', $meeting) }}">
+                        <a class="dropdown-item" href="<?php echo e(route('meetings.pdf', $meeting)); ?>">
                             <i class="bi bi-file-text me-2"></i> Fiche complète
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('meetings.pdf.agenda', $meeting) }}">
+                        <a class="dropdown-item" href="<?php echo e(route('meetings.pdf.agenda', $meeting)); ?>">
                             <i class="bi bi-list-check me-2"></i> Ordre du jour
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('meetings.pdf.logistics', $meeting) }}">
+                        <a class="dropdown-item" href="<?php echo e(route('meetings.pdf.logistics', $meeting)); ?>">
                             <i class="bi bi-geo-alt me-2"></i> Note logistique
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li><h6 class="dropdown-header">Documents officiels</h6></li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('meetings.pdf.invitation', $meeting) }}">
+                        <a class="dropdown-item" href="<?php echo e(route('meetings.pdf.invitation', $meeting)); ?>">
                             <i class="bi bi-envelope me-2"></i> Lettre d'invitation
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('meetings.pdf.attendance', $meeting) }}">
+                        <a class="dropdown-item" href="<?php echo e(route('meetings.pdf.attendance', $meeting)); ?>">
                             <i class="bi bi-person-check me-2"></i> Feuille de présence
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('meetings.pdf.minutes', $meeting) }}">
+                        <a class="dropdown-item" href="<?php echo e(route('meetings.pdf.minutes', $meeting)); ?>">
                             <i class="bi bi-journal-text me-2"></i> Procès-verbal (template)
                         </a>
                     </li>
-                    @if($meeting->termsOfReference)
+                    <?php if($meeting->termsOfReference): ?>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item" href="{{ route('terms-of-reference.pdf', [$meeting, $meeting->termsOfReference]) }}">
+                            <a class="dropdown-item" href="<?php echo e(route('terms-of-reference.pdf', [$meeting, $meeting->termsOfReference])); ?>">
                                 <i class="bi bi-file-earmark-ruled me-2"></i> Cahier des charges
                             </a>
                         </li>
-                    @endif
+                    <?php endif; ?>
                 </ul>
             </div>
             
-            @can('update', $meeting)
-                <form action="{{ route('meetings.notify', $meeting) }}" method="POST" class="d-inline">
-                    @csrf
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $meeting)): ?>
+                <form action="<?php echo e(route('meetings.notify', $meeting)); ?>" method="POST" class="d-inline">
+                    <?php echo csrf_field(); ?>
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="bi bi-envelope me-1"></i> Notifier les délégations
                     </button>
                 </form>
-            @endcan
-            @can('delete', $meeting)
-                <form action="{{ route('meetings.destroy', $meeting) }}" method="POST"
+            <?php endif; ?>
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('delete', $meeting)): ?>
+                <form action="<?php echo e(route('meetings.destroy', $meeting)); ?>" method="POST"
                       onsubmit="return confirm('Confirmez-vous la suppression de cette réunion ?');">
-                    @csrf
-                    @method('DELETE')
+                    <?php echo csrf_field(); ?>
+                    <?php echo method_field('DELETE'); ?>
                     <button type="submit" class="btn btn-sm btn-outline-danger">
                         Supprimer
                     </button>
                 </form>
-            @endcan
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
-@include('partials.alerts')
+<?php echo $__env->make('partials.alerts', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-{{-- Zone de workflow : boutons de changement de statut --}}
-@can('update', $meeting)
-    @if(count($availableTargets))
+
+<?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $meeting)): ?>
+    <?php if(count($availableTargets)): ?>
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
                 <h6 class="mb-3">Workflow de la réunion</h6>
                 <p class="text-muted small mb-2">
                     Statut actuel :
-                    <span class="badge rounded-pill {{ $statusBadges[$currentStatus] ?? 'bg-secondary' }}">
-                        {{ $statusLabels[$currentStatus] ?? ucfirst($currentStatus) }}
+                    <span class="badge rounded-pill <?php echo e($statusBadges[$currentStatus] ?? 'bg-secondary'); ?>">
+                        <?php echo e($statusLabels[$currentStatus] ?? ucfirst($currentStatus)); ?>
+
                     </span>
                 </p>
 
@@ -183,39 +184,41 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
-                    @foreach($availableTargets as $target)
+                    <?php $__currentLoopData = $availableTargets; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $target): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <form method="POST"
-                              action="{{ route('meetings.change-status', $meeting) }}"
+                              action="<?php echo e(route('meetings.change-status', $meeting)); ?>"
                               class="d-inline">
-                            @csrf
-                            <input type="hidden" name="status" value="{{ $target }}">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="status" value="<?php echo e($target); ?>">
                             <button type="submit"
-                                    class="btn btn-sm {{ $statusButtons[$target]['class'] ?? 'btn-outline-secondary' }}">
-                                {{ $statusButtons[$target]['label'] ?? $statusLabels[$target] ?? ucfirst($target) }}
+                                    class="btn btn-sm <?php echo e($statusButtons[$target]['class'] ?? 'btn-outline-secondary'); ?>">
+                                <?php echo e($statusButtons[$target]['label'] ?? $statusLabels[$target] ?? ucfirst($target)); ?>
+
                             </button>
                         </form>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </div>
 
-                {{-- Champ de commentaire optionnel pour le prochain changement de statut --}}
+                
                 <form method="POST"
-                      action="{{ route('meetings.change-status', $meeting) }}"
+                      action="<?php echo e(route('meetings.change-status', $meeting)); ?>"
                       class="mt-3">
-                    @csrf
+                    <?php echo csrf_field(); ?>
 
                     <div class="row g-2 align-items-end">
                         <div class="col-md-6">
                             <label class="form-label small mb-1">Changer le statut avec un commentaire</label>
                             <select name="status" class="form-select form-select-sm">
-                                {{-- Pré-sélectionne le statut actuel pour affichage et modification éventuelle --}}
-                                <option value="{{ $currentStatus }}" selected>
-                                    {{ $statusLabels[$currentStatus] ?? ucfirst($currentStatus) }}
+                                
+                                <option value="<?php echo e($currentStatus); ?>" selected>
+                                    <?php echo e($statusLabels[$currentStatus] ?? ucfirst($currentStatus)); ?>
+
                                 </option>
-                                @foreach($statusLabels as $value => $label)
-                                    @if($value !== $currentStatus)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endif
-                                @endforeach
+                                <?php $__currentLoopData = $statusLabels; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $value => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <?php if($value !== $currentStatus): ?>
+                                        <option value="<?php echo e($value); ?>"><?php echo e($label); ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -232,11 +235,11 @@
                 </form>
             </div>
         </div>
-    @endif
-@endcan
+    <?php endif; ?>
+<?php endif; ?>
 
 <div class="row g-3">
-    {{-- Détails principaux --}}
+    
     <div class="col-lg-8">
         <div class="card shadow-sm border-0 mb-3">
             <div class="card-body">
@@ -246,19 +249,20 @@
                     <div class="col-md-6">
                         <div class="text-muted small">Type de réunion</div>
                         <div class="fw-semibold">
-                            {{ $typeName ?? 'Non renseigné' }}
+                            <?php echo e($typeName ?? 'Non renseigné'); ?>
+
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="text-muted small">Configuration</div>
                         <div>
-                            @if($meeting->configuration === 'presentiel')
+                            <?php if($meeting->configuration === 'presentiel'): ?>
                                 <span class="badge bg-primary">Présentiel</span>
-                            @elseif($meeting->configuration === 'hybride')
+                            <?php elseif($meeting->configuration === 'hybride'): ?>
                                 <span class="badge bg-info text-dark">Hybride</span>
-                            @else
+                            <?php else: ?>
                                 <span class="badge bg-secondary">Visioconférence</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -267,25 +271,28 @@
                     <div class="col-md-4">
                         <div class="text-muted small">Date</div>
                         <div class="fw-semibold">
-                            {{ $meeting->start_at?->format('d/m/Y') ?? '—' }}
+                            <?php echo e($meeting->start_at?->format('d/m/Y') ?? '—'); ?>
+
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Heure</div>
                         <div class="fw-semibold">
-                            @if($meeting->start_at)
-                                {{ $meeting->start_at->format('H:i') }}
+                            <?php if($meeting->start_at): ?>
+                                <?php echo e($meeting->start_at->format('H:i')); ?>
+
                                 –
-                                {{ $meeting->start_at->copy()->addMinutes($meeting->duration_minutes)->format('H:i') }}
-                            @else
+                                <?php echo e($meeting->start_at->copy()->addMinutes($meeting->duration_minutes)->format('H:i')); ?>
+
+                            <?php else: ?>
                                 —
-                            @endif
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Durée</div>
                         <div class="fw-semibold">
-                            {{ $meeting->duration_minutes }} minutes
+                            <?php echo e($meeting->duration_minutes); ?> minutes
                         </div>
                     </div>
                 </div>
@@ -294,52 +301,54 @@
                     <div class="col-md-4">
                         <div class="text-muted small">Salle</div>
                         <div class="fw-semibold">
-                            {{ $roomName ?? 'Non attribuée' }}
+                            <?php echo e($roomName ?? 'Non attribuée'); ?>
+
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Pays hôte</div>
                         <div class="fw-semibold">
-                            {{ $meeting->host_country ?? 'Non renseigné' }}
+                            <?php echo e($meeting->host_country ?? 'Non renseigné'); ?>
+
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Rappel</div>
                         <div class="fw-semibold">
-                            @php
+                            <?php
                                 $r = $meeting->reminder_minutes_before;
-                            @endphp
-                            @if($r === null)
+                            ?>
+                            <?php if($r === null): ?>
                                 —
-                            @elseif($r === 0)
+                            <?php elseif($r === 0): ?>
                                 Aucun rappel
-                            @elseif($r < 60)
-                                {{ $r }} minutes avant
-                            @elseif($r === 60)
+                            <?php elseif($r < 60): ?>
+                                <?php echo e($r); ?> minutes avant
+                            <?php elseif($r === 60): ?>
                                 1 heure avant
-                            @elseif($r % 60 === 0)
-                                {{ $r / 60 }} heures avant
-                            @else
-                                {{ $r }} minutes avant
-                            @endif
+                            <?php elseif($r % 60 === 0): ?>
+                                <?php echo e($r / 60); ?> heures avant
+                            <?php else: ?>
+                                <?php echo e($r); ?> minutes avant
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
-                @if($meeting->description)
+                <?php if($meeting->description): ?>
                     <hr>
                     <div class="text-muted small mb-1">Description</div>
-                    <p class="mb-0">{{ $meeting->description }}</p>
-                @endif
+                    <p class="mb-0"><?php echo e($meeting->description); ?></p>
+                <?php endif; ?>
         </div>
     </div>
 
-        {{-- Documents liés --}}
+        
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <h6 class="mb-3">Documents liés</h6>
-                @php $documents = $meeting->documents ?? collect(); @endphp
-                @if($documents->isNotEmpty())
+                <?php $documents = $meeting->documents ?? collect(); ?>
+                <?php if($documents->isNotEmpty()): ?>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
                             <thead>
@@ -352,117 +361,123 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($documents as $doc)
+                                <?php $__currentLoopData = $documents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $doc): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <tr>
-                                        <td class="fw-semibold">{{ $doc->title }}</td>
-                                        <td class="small text-muted">{{ $doc->type?->name ?? $doc->type_label }}</td>
-                                        <td class="small">{{ $doc->uploader?->name ?? 'N/A' }}</td>
-                                        <td class="small text-muted">{{ $doc->created_at?->format('d/m/Y') ?? '—' }}</td>
+                                        <td class="fw-semibold"><?php echo e($doc->title); ?></td>
+                                        <td class="small text-muted"><?php echo e($doc->type?->name ?? $doc->type_label); ?></td>
+                                        <td class="small"><?php echo e($doc->uploader?->name ?? 'N/A'); ?></td>
+                                        <td class="small text-muted"><?php echo e($doc->created_at?->format('d/m/Y') ?? '—'); ?></td>
                                         <td class="text-end">
-                                            @can('download', $doc)
-                                                <a href="{{ route('documents.download', $doc) }}" class="btn btn-sm btn-outline-primary">
+                                            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('download', $doc)): ?>
+                                                <a href="<?php echo e(route('documents.download', $doc)); ?>" class="btn btn-sm btn-outline-primary">
                                                     <i class="bi bi-download"></i>
                                                 </a>
-                                            @else
+                                            <?php else: ?>
                                                 <span class="text-muted small"><i class="bi bi-lock"></i></span>
-                                            @endcan
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             </tbody>
                         </table>
                     </div>
-                @else
+                <?php else: ?>
                     <p class="text-muted small mb-0">Aucun document lié à cette réunion.</p>
-                @endif
+                <?php endif; ?>
             </div>
         </div>
 
-        {{-- Délégations liées --}}
+        
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="mb-0">Délégations participantes</h6>
-                    @can('create', \App\Models\Delegation::class)
-                        <a href="{{ route('delegations.create', ['meeting_id' => $meeting->id]) }}" 
+                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', \App\Models\Delegation::class)): ?>
+                        <a href="<?php echo e(route('delegations.create', ['meeting_id' => $meeting->id])); ?>" 
                            class="btn btn-sm btn-primary">
                             <i class="bi bi-plus-circle"></i> Ajouter une délégation
                         </a>
-                    @endcan
+                    <?php endif; ?>
                 </div>
                 
-                @if($meeting->delegations->isNotEmpty())
+                <?php if($meeting->delegations->isNotEmpty()): ?>
                     <div class="d-flex flex-wrap gap-2 mb-2">
-                        @foreach($meeting->delegations as $delegation)
-                            <a href="{{ route('delegations.show', $delegation) }}"
+                        <?php $__currentLoopData = $meeting->delegations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $delegation): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <a href="<?php echo e(route('delegations.show', $delegation)); ?>"
                                class="badge bg-primary text-decoration-none p-2">
-                                <i class="bi bi-building"></i> {{ $delegation->title }}
-                                @if($delegation->members_count > 0)
-                                    <span class="badge bg-light text-dark ms-1">{{ $delegation->members_count }} membre{{ $delegation->members_count > 1 ? 's' : '' }}</span>
-                                @endif
+                                <i class="bi bi-building"></i> <?php echo e($delegation->title); ?>
+
+                                <?php if($delegation->members_count > 0): ?>
+                                    <span class="badge bg-light text-dark ms-1"><?php echo e($delegation->members_count); ?> membre<?php echo e($delegation->members_count > 1 ? 's' : ''); ?></span>
+                                <?php endif; ?>
                             </a>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
-                @else
+                <?php else: ?>
                     <div class="alert alert-info mb-0">
                         <i class="bi bi-info-circle"></i> 
                         Aucune délégation n'a encore été ajoutée à cette réunion. 
                         Cliquez sur "Ajouter une délégation" pour commencer.
                     </div>
-                @endif
+                <?php endif; ?>
             </div>
         </div>
 
-        {{-- Historique des statuts --}}
-        @if($histories->isNotEmpty())
+        
+        <?php if($histories->isNotEmpty()): ?>
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <h6 class="mb-3">Historique des statuts</h6>
 
                     <ul class="list-unstyled mb-0">
-                        @foreach($histories as $history)
-                            @php
+                        <?php $__currentLoopData = $histories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $history): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
                                 $old = $history->old_status;
                                 $new = $history->new_status;
                                 $userName = optional($history->user)->name ?? 'Système';
-                            @endphp
+                            ?>
                             <li class="mb-3 d-flex">
                                 <div class="me-3">
-                                    <span class="badge rounded-pill {{ $statusBadges[$new] ?? 'bg-secondary' }}">
-                                        {{ $statusLabels[$new] ?? ucfirst($new) }}
+                                    <span class="badge rounded-pill <?php echo e($statusBadges[$new] ?? 'bg-secondary'); ?>">
+                                        <?php echo e($statusLabels[$new] ?? ucfirst($new)); ?>
+
                                     </span>
                                 </div>
                                 <div>
                                     <div class="small">
-                                        <strong>{{ $userName }}</strong>
+                                        <strong><?php echo e($userName); ?></strong>
                                         a changé le statut
-                                        @if($old)
+                                        <?php if($old): ?>
                                             de
                                             <span class="text-muted">
-                                                {{ $statusLabels[$old] ?? $old }}
+                                                <?php echo e($statusLabels[$old] ?? $old); ?>
+
                                             </span>
-                                        @endif
+                                        <?php endif; ?>
                                         à
                                         <span class="fw-semibold">
-                                            {{ $statusLabels[$new] ?? $new }}
+                                            <?php echo e($statusLabels[$new] ?? $new); ?>
+
                                         </span>
                                     </div>
                                     <div class="text-muted small">
-                                        {{ $history->created_at?->format('d/m/Y H:i') }}
+                                        <?php echo e($history->created_at?->format('d/m/Y H:i')); ?>
+
                                     </div>
-                                    @if($history->comment)
+                                    <?php if($history->comment): ?>
                                         <div class="small mt-1">
                                             <span class="text-muted">Commentaire :</span>
-                                            {{ $history->comment }}
+                                            <?php echo e($history->comment); ?>
+
                                         </div>
-                                    @endif
+                                    <?php endif; ?>
                                 </div>
                             </li>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </ul>
                 </div>
             </div>
-        @else
+        <?php else: ?>
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <h6 class="mb-3">Historique des statuts</h6>
@@ -471,9 +486,9 @@
                     </p>
                 </div>
             </div>
-        @endif
+        <?php endif; ?>
 
-        {{-- Notes & actions rapides --}}
+        
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <h6 class="mb-3">Notes & actions rapides</h6>
@@ -488,10 +503,10 @@
         </div>
     </div>
 
-    {{-- Colonne latérale : informations --}}
+    
     <div class="col-lg-4">
-        {{-- Section Comité d'Organisation (EF20) --}}
-        @if($meeting->organizationCommittee)
+        
+        <?php if($meeting->organizationCommittee): ?>
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white">
                     <h6 class="mb-0">
@@ -500,12 +515,12 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <strong>{{ $meeting->organizationCommittee->name }}</strong>
-                        @if($meeting->organizationCommittee->description)
-                            <p class="text-muted small mb-0 mt-1">{{ $meeting->organizationCommittee->description }}</p>
-                        @endif
+                        <strong><?php echo e($meeting->organizationCommittee->name); ?></strong>
+                        <?php if($meeting->organizationCommittee->description): ?>
+                            <p class="text-muted small mb-0 mt-1"><?php echo e($meeting->organizationCommittee->description); ?></p>
+                        <?php endif; ?>
                     </div>
-                    @if($meeting->organizationCommittee->members->count() > 0)
+                    <?php if($meeting->organizationCommittee->members->count() > 0): ?>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
@@ -516,27 +531,27 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($meeting->organizationCommittee->members as $member)
+                                    <?php $__currentLoopData = $meeting->organizationCommittee->members; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $member): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <tr>
-                                            <td>{{ $member->user->name ?? 'N/A' }}</td>
-                                            <td><span class="badge bg-info">{{ $member->role }}</span></td>
-                                            <td class="text-muted small">{{ $member->notes ?? '—' }}</td>
+                                            <td><?php echo e($member->user->name ?? 'N/A'); ?></td>
+                                            <td><span class="badge bg-info"><?php echo e($member->role); ?></span></td>
+                                            <td class="text-muted small"><?php echo e($member->notes ?? '—'); ?></td>
                                         </tr>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </tbody>
                             </table>
                         </div>
-                    @endif
+                    <?php endif; ?>
                     <div class="mt-3">
-                        <a href="{{ route('organization-committees.show', $meeting->organizationCommittee) }}" 
+                        <a href="<?php echo e(route('organization-committees.show', $meeting->organizationCommittee)); ?>" 
                            class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-eye"></i> Voir les détails du comité
                         </a>
                     </div>
                 </div>
             </div>
-        @else
-            @can('update', $meeting)
+        <?php else: ?>
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $meeting)): ?>
                 <div class="card shadow-sm border-0 mb-4 border-warning">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
@@ -547,50 +562,53 @@
                                 </h6>
                                 <p class="text-muted small mb-0">EF20 - Assignez un comité d'organisation à cette réunion</p>
                             </div>
-                            <a href="{{ route('organization-committees.create', ['meeting_id' => $meeting->id]) }}" 
+                            <a href="<?php echo e(route('organization-committees.create', ['meeting_id' => $meeting->id])); ?>" 
                                class="btn btn-sm btn-warning">
                                 <i class="bi bi-plus-circle"></i> Créer/Assigner un comité
                             </a>
                         </div>
                     </div>
                 </div>
-            @endcan
-        @endif
+            <?php endif; ?>
+        <?php endif; ?>
 
-        {{-- Section Délégations (remplace l'ancienne section Participants) --}}
-        {{-- Les délégations sont déjà affichées dans la section dédiée plus haut --}}
+        
+        
 
-        {{-- Informations créateur / méta --}}
+        
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <h6 class="mb-3">Informations système</h6>
                 <div class="small mb-1">
                     <span class="text-muted">Créée le :</span>
-                    {{ $meeting->created_at?->format('d/m/Y H:i') ?? '—' }}
+                    <?php echo e($meeting->created_at?->format('d/m/Y H:i') ?? '—'); ?>
+
                 </div>
                 <div class="small mb-1">
                     <span class="text-muted">Dernière mise à jour :</span>
-                    {{ $meeting->updated_at?->format('d/m/Y H:i') ?? '—' }}
+                    <?php echo e($meeting->updated_at?->format('d/m/Y H:i') ?? '—'); ?>
+
                 </div>
                 <div class="small">
                     <span class="text-muted">Organisateur :</span>
-                    {{ $creatorName ?? 'Non renseigné' }}
+                    <?php echo e($creatorName ?? 'Non renseigné'); ?>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Si un message de succès pour une délégation est affiché, faire défiler vers la section des délégations
-    @php
+    <?php
         $successMessage = session('success');
         $isDelegationMessage = $successMessage && (strpos($successMessage, 'Délégation') !== false || strpos($successMessage, 'délégation') !== false);
-    @endphp
+    ?>
     
-    @if($isDelegationMessage)
+    <?php if($isDelegationMessage): ?>
         setTimeout(function() {
             const delegationsSection = document.getElementById('delegations-section');
             if (delegationsSection) {
@@ -603,8 +621,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 2000);
             }
         }, 500);
-    @endif
+    <?php endif; ?>
 });
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\sgrs-alpha\resources\views/meetings/show.blade.php ENDPATH**/ ?>

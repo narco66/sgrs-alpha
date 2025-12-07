@@ -83,8 +83,16 @@ Route::middleware(['auth', 'verified'])
 
         Route::post('/meetings/{meeting}/notify', [MeetingController::class, 'notifyParticipants'])
             ->name('meetings.notify');
-        Route::get('/meetings/{meeting}/pdf', [MeetingController::class, 'exportPdf'])
-            ->name('meetings.pdf');
+        
+        // Routes PDF pour les réunions
+        Route::prefix('meetings/{meeting}')->name('meetings.')->group(function () {
+            Route::get('pdf', [MeetingController::class, 'exportPdf'])->name('pdf');
+            Route::get('pdf/invitation', [MeetingController::class, 'exportInvitationPdf'])->name('pdf.invitation');
+            Route::get('pdf/attendance', [MeetingController::class, 'exportAttendancePdf'])->name('pdf.attendance');
+            Route::get('pdf/minutes', [MeetingController::class, 'exportMinutesPdf'])->name('pdf.minutes');
+            Route::get('pdf/logistics', [MeetingController::class, 'exportLogisticsPdf'])->name('pdf.logistics');
+            Route::get('pdf/agenda', [MeetingController::class, 'exportAgendaPdf'])->name('pdf.agenda');
+        });
 
         Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index');
         Route::get('rooms/{room}', [RoomController::class, 'show'])->name('rooms.show');
@@ -122,6 +130,10 @@ Route::middleware(['auth', 'verified'])
                 ->name('members.index');
             Route::patch('members/{member}/status', [\App\Http\Controllers\DelegationMemberController::class, 'updateStatus'])
                 ->name('members.update-status');
+            Route::get('members/{member}/badge', [\App\Http\Controllers\DelegationMemberController::class, 'exportBadgePdf'])
+                ->name('members.badge');
+            Route::get('badges', [\App\Http\Controllers\DelegationMemberController::class, 'exportAllBadgesPdf'])
+                ->name('badges');
         });
         
         // Cahier des charges

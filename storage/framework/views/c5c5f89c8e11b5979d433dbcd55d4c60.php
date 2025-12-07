@@ -1,8 +1,6 @@
-@extends('pdf.layouts.master')
+<?php $__env->startSection('title', 'Fiche Réunion - ' . $meeting->title); ?>
 
-@section('title', 'Fiche Réunion - ' . $meeting->title)
-
-@section('styles')
+<?php $__env->startSection('styles'); ?>
 <style>
     .meeting-header {
         margin-bottom: 20px;
@@ -28,9 +26,9 @@
         page-break-inside: avoid;
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@php
+<?php
     // Préparation des données pour éviter les erreurs de type
     $statusValue = is_object($meeting->status) && property_exists($meeting->status, 'value')
         ? $meeting->status->value
@@ -54,26 +52,26 @@
     // Salle
     $roomModel = $relations['room'] ?? null;
     $roomName = is_object($roomModel) ? $roomModel->name : null;
-@endphp
+?>
 
-@section('content')
-{{-- EN-TÊTE DU DOCUMENT --}}
+<?php $__env->startSection('content'); ?>
+
 <div class="meeting-header">
-    <h1>{{ $meeting->title }}</h1>
+    <h1><?php echo e($meeting->title); ?></h1>
     
     <p>
-        @include('pdf.partials.status-badge', ['status' => $statusValue, 'type' => 'meeting'])
-        @if($meetingTypeName)
-            <span class="badge badge-info" style="margin-left: 5px;">{{ $meetingTypeName }}</span>
-        @endif
+        <?php echo $__env->make('pdf.partials.status-badge', ['status' => $statusValue, 'type' => 'meeting'], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php if($meetingTypeName): ?>
+            <span class="badge badge-info" style="margin-left: 5px;"><?php echo e($meetingTypeName); ?></span>
+        <?php endif; ?>
     </p>
 </div>
 
-{{-- INFORMATIONS GÉNÉRALES --}}
+
 <div class="section">
     <h2>Informations générales</h2>
     
-    @include('pdf.partials.info-table', ['items' => [
+    <?php echo $__env->make('pdf.partials.info-table', ['items' => [
         ['label' => 'Type de réunion', 'value' => $meetingTypeName ?? 'Non renseigné'],
         ['label' => 'Comité', 'value' => $committeeName ?? 'Non renseigné'],
         ['label' => 'Organisateur', 'value' => $organizerName ?? 'Non renseigné'],
@@ -83,42 +81,42 @@
         ['label' => 'Date de fin', 'value' => $meeting->end_at?->format('d/m/Y à H:i') ?? 'Non définie'],
         ['label' => 'Durée', 'value' => $meeting->duration_minutes ? $meeting->duration_minutes . ' minutes' : 'Non définie'],
         ['label' => 'Rappel', 'value' => $meeting->reminder_minutes_before ? $meeting->reminder_minutes_before . ' minutes avant' : 'Aucun rappel'],
-    ]])
+    ]], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </div>
 
-{{-- OBJECTIF / DESCRIPTION --}}
-@if($meeting->description)
+
+<?php if($meeting->description): ?>
 <div class="section">
     <h2>Objectif de la réunion</h2>
-    <p class="text-justify">{{ $meeting->description }}</p>
+    <p class="text-justify"><?php echo e($meeting->description); ?></p>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- ORDRE DU JOUR --}}
-@if($meeting->agenda)
+
+<?php if($meeting->agenda): ?>
 <div class="section">
     <h2>Ordre du jour</h2>
-    <div style="white-space: pre-wrap; background: #f9fafb; padding: 12px; border-radius: 4px;">{{ $meeting->agenda }}</div>
+    <div style="white-space: pre-wrap; background: #f9fafb; padding: 12px; border-radius: 4px;"><?php echo e($meeting->agenda); ?></div>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- COMITÉ D'ORGANISATION --}}
+
 <div class="section avoid-break">
     <h2>Comité d'organisation</h2>
     
-    @if($meeting->organizationCommittee)
+    <?php if($meeting->organizationCommittee): ?>
         <div class="subsection">
-            <p><strong>Nom :</strong> {{ $meeting->organizationCommittee->name }}</p>
-            @if($meeting->organizationCommittee->description)
-                <p class="text-muted">{{ $meeting->organizationCommittee->description }}</p>
-            @endif
-            @if($meeting->organizationCommittee->host_country)
-                <p><strong>Pays hôte :</strong> {{ $meeting->organizationCommittee->host_country }}</p>
-            @endif
+            <p><strong>Nom :</strong> <?php echo e($meeting->organizationCommittee->name); ?></p>
+            <?php if($meeting->organizationCommittee->description): ?>
+                <p class="text-muted"><?php echo e($meeting->organizationCommittee->description); ?></p>
+            <?php endif; ?>
+            <?php if($meeting->organizationCommittee->host_country): ?>
+                <p><strong>Pays hôte :</strong> <?php echo e($meeting->organizationCommittee->host_country); ?></p>
+            <?php endif; ?>
         </div>
         
-        @php $members = $meeting->organizationCommittee->members ?? collect(); @endphp
-        @if($members->count())
+        <?php $members = $meeting->organizationCommittee->members ?? collect(); ?>
+        <?php if($members->count()): ?>
             <table>
                 <thead>
                     <tr>
@@ -129,58 +127,59 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($members as $member)
+                    <?php $__currentLoopData = $members; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $member): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr>
-                            <td>{{ $member->user?->name ?? 'Non renseigné' }}</td>
+                            <td><?php echo e($member->user?->name ?? 'Non renseigné'); ?></td>
                             <td>
-                                @php
+                                <?php
                                     $memberType = $member->member_type ?? 'ceeac';
                                     $typeLabels = ['ceeac' => 'CEEAC', 'host_country' => 'Pays hôte'];
-                                @endphp
-                                {{ $typeLabels[$memberType] ?? $memberType }}
+                                ?>
+                                <?php echo e($typeLabels[$memberType] ?? $memberType); ?>
+
                             </td>
-                            <td>{{ $member->role ?? '—' }}</td>
-                            <td>{{ $member->department ?? $member->service ?? '—' }}</td>
+                            <td><?php echo e($member->role ?? '—'); ?></td>
+                            <td><?php echo e($member->department ?? $member->service ?? '—'); ?></td>
                         </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
-        @else
+        <?php else: ?>
             <p class="text-muted">Aucun membre renseigné dans le comité d'organisation.</p>
-        @endif
-    @else
+        <?php endif; ?>
+    <?php else: ?>
         <p class="text-muted">Aucun comité d'organisation associé à cette réunion.</p>
-    @endif
+    <?php endif; ?>
 </div>
 
-{{-- CAHIER DES CHARGES --}}
-@if($meeting->termsOfReference)
+
+<?php if($meeting->termsOfReference): ?>
 <div class="section avoid-break">
     <h2>Cahier des charges</h2>
     
-    @include('pdf.partials.info-table', ['items' => [
+    <?php echo $__env->make('pdf.partials.info-table', ['items' => [
         ['label' => 'Pays hôte', 'value' => $meeting->termsOfReference->host_country ?? 'Non renseigné'],
         ['label' => 'Date de signature', 'value' => $meeting->termsOfReference->signature_date?->format('d/m/Y') ?? 'Non signé'],
         ['label' => 'Statut', 'value' => ucfirst($meeting->termsOfReference->status ?? 'draft')],
         ['label' => 'Version', 'value' => $meeting->termsOfReference->version ?? '1'],
-    ]])
+    ]], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 </div>
-@endif
+<?php endif; ?>
 
-{{-- DÉLÉGATIONS PARTICIPANTES --}}
+
 <div class="section">
     <h2>Délégations participantes</h2>
     
-    @php $delegations = $meeting->delegations ?? collect(); @endphp
+    <?php $delegations = $meeting->delegations ?? collect(); ?>
     
-    @if($delegations->count())
-        <p class="text-muted mb-2">{{ $delegations->count() }} délégation(s) enregistrée(s)</p>
+    <?php if($delegations->count()): ?>
+        <p class="text-muted mb-2"><?php echo e($delegations->count()); ?> délégation(s) enregistrée(s)</p>
         
-        @foreach($delegations as $delegation)
+        <?php $__currentLoopData = $delegations; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $delegation): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <div class="delegation-card">
-                <h3 style="margin: 0 0 8px 0; color: #1e3a8a;">{{ $delegation->title }}</h3>
+                <h3 style="margin: 0 0 8px 0; color: #1e3a8a;"><?php echo e($delegation->title); ?></h3>
                 
-                @php
+                <?php
                     $entityTypes = [
                         'state_member' => 'État membre',
                         'international_organization' => 'Organisation internationale',
@@ -188,46 +187,47 @@
                         'financial_partner' => 'Partenaire financier',
                         'other' => 'Autre'
                     ];
-                @endphp
+                ?>
                 
                 <table style="margin: 5px 0;">
                     <tr>
                         <td style="width: 30%; background: #f3f4f6;"><strong>Type d'entité</strong></td>
-                        <td>{{ $entityTypes[$delegation->entity_type] ?? $delegation->entity_type }}</td>
+                        <td><?php echo e($entityTypes[$delegation->entity_type] ?? $delegation->entity_type); ?></td>
                     </tr>
-                    @if($delegation->country)
+                    <?php if($delegation->country): ?>
                     <tr>
                         <td style="background: #f3f4f6;"><strong>Pays</strong></td>
-                        <td>{{ $delegation->country }}</td>
+                        <td><?php echo e($delegation->country); ?></td>
                     </tr>
-                    @endif
-                    @if($delegation->organization_name)
+                    <?php endif; ?>
+                    <?php if($delegation->organization_name): ?>
                     <tr>
                         <td style="background: #f3f4f6;"><strong>Organisation</strong></td>
-                        <td>{{ $delegation->organization_name }}</td>
+                        <td><?php echo e($delegation->organization_name); ?></td>
                     </tr>
-                    @endif
-                    @if($delegation->head_of_delegation_name)
+                    <?php endif; ?>
+                    <?php if($delegation->head_of_delegation_name): ?>
                     <tr>
                         <td style="background: #f3f4f6;"><strong>Chef de délégation</strong></td>
                         <td>
-                            {{ $delegation->head_of_delegation_name }}
-                            @if($delegation->head_of_delegation_position)
-                                <span class="text-muted">({{ $delegation->head_of_delegation_position }})</span>
-                            @endif
+                            <?php echo e($delegation->head_of_delegation_name); ?>
+
+                            <?php if($delegation->head_of_delegation_position): ?>
+                                <span class="text-muted">(<?php echo e($delegation->head_of_delegation_position); ?>)</span>
+                            <?php endif; ?>
                         </td>
                     </tr>
-                    @endif
+                    <?php endif; ?>
                     <tr>
                         <td style="background: #f3f4f6;"><strong>Statut</strong></td>
-                        <td>@include('pdf.partials.status-badge', ['status' => $delegation->participation_status, 'type' => 'delegation'])</td>
+                        <td><?php echo $__env->make('pdf.partials.status-badge', ['status' => $delegation->participation_status, 'type' => 'delegation'], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?></td>
                     </tr>
                 </table>
                 
-                {{-- Membres de la délégation --}}
-                @php $delegationMembers = $delegation->members ?? collect(); @endphp
-                @if($delegationMembers->count())
-                    <h4 style="margin: 10px 0 5px 0;">Membres ({{ $delegationMembers->count() }})</h4>
+                
+                <?php $delegationMembers = $delegation->members ?? collect(); ?>
+                <?php if($delegationMembers->count()): ?>
+                    <h4 style="margin: 10px 0 5px 0;">Membres (<?php echo e($delegationMembers->count()); ?>)</h4>
                     <table style="font-size: 9px;">
                         <thead>
                             <tr>
@@ -239,8 +239,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($delegationMembers as $member)
-                                @php
+                            <?php $__currentLoopData = $delegationMembers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $member): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <?php
                                     $roles = [
                                         'head' => 'Chef',
                                         'deputy' => 'Adjoint',
@@ -249,32 +249,32 @@
                                         'expert' => 'Expert',
                                         'interpreter' => 'Interprète'
                                     ];
-                                @endphp
+                                ?>
                                 <tr>
-                                    <td>{{ trim(($member->title ?? '') . ' ' . ($member->first_name ?? '') . ' ' . ($member->last_name ?? '')) ?: $member->full_name ?? '—' }}</td>
-                                    <td>{{ $member->email ?? '—' }}</td>
-                                    <td>{{ $member->position ?? '—' }}</td>
-                                    <td>{{ $roles[$member->role] ?? $member->role ?? '—' }}</td>
-                                    <td>@include('pdf.partials.status-badge', ['status' => $member->status ?? 'pending', 'type' => 'participant'])</td>
+                                    <td><?php echo e(trim(($member->title ?? '') . ' ' . ($member->first_name ?? '') . ' ' . ($member->last_name ?? '')) ?: $member->full_name ?? '—'); ?></td>
+                                    <td><?php echo e($member->email ?? '—'); ?></td>
+                                    <td><?php echo e($member->position ?? '—'); ?></td>
+                                    <td><?php echo e($roles[$member->role] ?? $member->role ?? '—'); ?></td>
+                                    <td><?php echo $__env->make('pdf.partials.status-badge', ['status' => $member->status ?? 'pending', 'type' => 'participant'], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?></td>
                                 </tr>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </tbody>
                     </table>
-                @endif
+                <?php endif; ?>
             </div>
-        @endforeach
-    @else
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+    <?php else: ?>
         <p class="text-muted">Aucune délégation enregistrée pour cette réunion.</p>
-    @endif
+    <?php endif; ?>
 </div>
 
-{{-- DOCUMENTS ASSOCIÉS --}}
+
 <div class="section">
     <h2>Documents associés</h2>
     
-    @php $documents = $meeting->documents ?? collect(); @endphp
+    <?php $documents = $meeting->documents ?? collect(); ?>
     
-    @if($documents->count())
+    <?php if($documents->count()): ?>
         <table>
             <thead>
                 <tr>
@@ -285,18 +285,20 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($documents as $doc)
+                <?php $__currentLoopData = $documents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $doc): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                        <td>{{ $doc->title }}</td>
-                        <td>{{ $doc->type?->name ?? $doc->document_type ?? '—' }}</td>
-                        <td>{{ $doc->created_at?->format('d/m/Y') ?? '—' }}</td>
-                        <td>{{ $doc->uploader?->name ?? '—' }}</td>
+                        <td><?php echo e($doc->title); ?></td>
+                        <td><?php echo e($doc->type?->name ?? $doc->document_type ?? '—'); ?></td>
+                        <td><?php echo e($doc->created_at?->format('d/m/Y') ?? '—'); ?></td>
+                        <td><?php echo e($doc->uploader?->name ?? '—'); ?></td>
                     </tr>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </tbody>
         </table>
-    @else
+    <?php else: ?>
         <p class="text-muted">Aucun document associé à cette réunion.</p>
-    @endif
+    <?php endif; ?>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('pdf.layouts.master', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\sgrs-alpha\resources\views/meetings/pdf.blade.php ENDPATH**/ ?>

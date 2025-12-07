@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Delegation;
 use App\Models\DelegationMember;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 /**
@@ -187,6 +188,56 @@ class DelegationMemberController extends Controller
         $member->update($updateData);
 
         return back()->with('success', 'Le statut du membre a été mis à jour.');
+    }
+
+    /**
+     * Export du badge d'un membre en PDF.
+     */
+    public function exportBadgePdf(Delegation $delegation, DelegationMember $member)
+    {
+        $this->authorize('view', $delegation);
+
+        if ($member->delegation_id !== $delegation->id) {
+            abort(404);
+        }
+
+        $delegation->load('meeting');
+
+        $pdf = Pdf::loadView('participants.pdf-badge', [
+            'participant' => $member,
+            'delegation' => $delegation,
+            'meeting' => $delegation->meeting,
+        ])->setPaper([0, 0, 241, 153], 'landscape'); // Format badge 85mm x 54mm
+
+        $fileName = 'badge-' . ($member->last_name ?? $member->id) . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Export de tous les badges d'une délégation en PDF.
+     */
+    public function exportAllBadgesPdf(Delegation $delegation)
+    {
+        $this->authorize('view', $delegation);
+
+        $delegation->load(['members', 'meeting']);
+
+        $html = '';
+        foreach ($delegation->members as $member) {
+            $html .= view('participants.pdf-badge', [
+                'participant' => $member,
+                'delegation' => $delegation,
+                'meeting' => $delegation->meeting,
+            ])->render();
+            $html .= '<div style="page-break-after: always;"></div>';
+        }
+
+        $pdf = Pdf::loadHTML($html)->setPaper([0, 0, 241, 153], 'landscape');
+
+        $fileName = 'badges-delegation-' . $delegation->id . '.pdf';
+
+        return $pdf->download($fileName);
     }
 }
 

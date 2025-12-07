@@ -1,95 +1,122 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Comité d'organisation - {{ $committee->name }}</title>
-    <style>
-        @page { margin: 120px 30px 70px 30px; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; margin: 0; color: #1f2937; padding: 0 24px; position: relative; box-sizing: border-box; }
-        h1 { margin: 0 0 10px; color: #1d4ed8; }
-        h2 { margin: 20px 0 8px; font-size: 16px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #e5e7eb; padding: 8px; }
-        th { background: #eef2ff; text-align: left; }
-        .meta { margin: 0 0 4px; color: #6b7280; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; color: #fff; }
-        .badge-primary { background: #2563eb; }
-        .badge-success { background: #16a34a; }
-        .badge-secondary { background: #6b7280; }
-        .footer {
-            font-size: 11px;
-            color: #6b7280;
-            text-align: center;
-            border-top: 1px solid #e5e7eb;
-            padding: 8px 0 0 0;
-            margin-top: 24px;
-        }
-    </style>
-</head>
-<body>
-    @php
-        $logoPath = public_path('images/logo-ceeac.png');
-        if (! file_exists($logoPath)) {
-            $alt = glob(public_path('images/logo*ceeac.png'));
-            $logoPath = $alt[0] ?? null;
-        }
-    @endphp
-    <table width="100%" style="margin-bottom:12px;">
-        <tr>
-            <td style="width:70px;">
-                @if($logoPath)
-                    <img src="{{ $logoPath }}" alt="CEEAC" style="height:50px;">
-                @endif
-            </td>
-            <td style="text-align:right; font-size:13px; color:#1f2937; font-weight:bold;">
-                SGRS-CEEAC: Système de Gestion des Réunions Statutaires de la CEEAC
-            </td>
-        </tr>
-    </table>
+@extends('pdf.layouts.master')
+
+@section('title', 'Comité d\'organisation - ' . $committee->name)
+
+@section('content')
+{{-- EN-TÊTE DU DOCUMENT --}}
+<div class="section">
     <h1>Comité d'organisation</h1>
-    <p class="meta">Nom : <strong>{{ $committee->name }}</strong></p>
-    <p class="meta">Réunion associée :
-        @if($committee->meeting)
-            {{ $committee->meeting->title }} ({{ optional($committee->meeting->start_at)->format('d/m/Y H:i') }})
-        @else
-            N/A
-        @endif
-    </p>
-    <p class="meta">Créé par : {{ $committee->creator->name ?? 'N/A' }}</p>
-    <p class="meta">Statut :
+    
+    <p>
         @if($committee->is_active)
             <span class="badge badge-success">Actif</span>
         @else
             <span class="badge badge-secondary">Inactif</span>
         @endif
     </p>
+</div>
 
-    <h2>Membres ({{ $committee->members->count() }})</h2>
+{{-- INFORMATIONS GÉNÉRALES --}}
+<div class="section">
+    <h2>Informations générales</h2>
+    
+    @include('pdf.partials.info-table', ['items' => [
+        ['label' => 'Nom du comité', 'value' => $committee->name],
+        ['label' => 'Description', 'value' => $committee->description],
+        ['label' => 'Pays hôte', 'value' => $committee->host_country],
+        ['label' => 'Créé par', 'value' => $committee->creator?->name ?? 'Non renseigné'],
+        ['label' => 'Date de création', 'value' => $committee->created_at?->format('d/m/Y') ?? 'Non renseignée'],
+    ]])
+</div>
+
+{{-- RÉUNION ASSOCIÉE --}}
+<div class="section">
+    <h2>Réunion associée</h2>
+    
+    @if($committee->meeting)
+        <div class="info-box info-box-primary">
+            <p><strong>{{ $committee->meeting->title }}</strong></p>
+            <p class="text-muted">
+                Date : {{ $committee->meeting->start_at?->format('d/m/Y à H:i') ?? 'Non définie' }}
+            </p>
+            @if($committee->meeting->room)
+                <p class="text-small">Salle : {{ $committee->meeting->room->name }}</p>
+            @endif
+            @if($committee->meeting->type)
+                <p class="text-small">Type : {{ $committee->meeting->type->name }}</p>
+            @endif
+        </div>
+    @else
+        <p class="text-muted">Aucune réunion associée à ce comité.</p>
+    @endif
+</div>
+
+{{-- MEMBRES DU COMITÉ --}}
+<div class="section">
+    <h2>Membres du comité ({{ $committee->members->count() }})</h2>
+    
     @if($committee->members->isNotEmpty())
+        @php
+            $memberTypes = [
+                'ceeac' => 'CEEAC',
+                'host_country' => 'Pays hôte'
+            ];
+        @endphp
+        
         <table>
             <thead>
                 <tr>
-                    <th>Participant</th>
+                    <th>Membre</th>
+                    <th>Type</th>
                     <th>Rôle</th>
+                    <th>Service/Département</th>
                     <th>Notes</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($committee->members as $member)
                     <tr>
-                        <td>{{ $member->user->name ?? 'N/A' }}</td>
-                        <td><span class="badge badge-primary">{{ $member->role }}</span></td>
+                        <td>
+                            <strong>{{ $member->user?->name ?? 'Non renseigné' }}</strong>
+                            @if($member->user?->email)
+                                <br><span class="text-muted text-small">{{ $member->user->email }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="badge {{ $member->member_type === 'ceeac' ? 'badge-primary' : 'badge-info' }}">
+                                {{ $memberTypes[$member->member_type] ?? $member->member_type ?? 'Non défini' }}
+                            </span>
+                        </td>
+                        <td>{{ $member->role ?? '—' }}</td>
+                        <td>
+                            @if($member->department || $member->service)
+                                {{ $member->department ?? '' }}
+                                @if($member->department && $member->service) / @endif
+                                {{ $member->service ?? '' }}
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td>{{ $member->notes ?? '—' }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
+        
+        {{-- RÉSUMÉ PAR TYPE --}}
+        <div class="info-box info-box-success mt-3">
+            <p><strong>Répartition des membres :</strong></p>
+            @php
+                $ceeacCount = $committee->members->where('member_type', 'ceeac')->count();
+                $hostCount = $committee->members->where('member_type', 'host_country')->count();
+            @endphp
+            <ul style="margin: 5px 0;">
+                <li>Membres CEEAC : {{ $ceeacCount }}</li>
+                <li>Membres Pays hôte : {{ $hostCount }}</li>
+            </ul>
+        </div>
     @else
-        <p class="meta">Aucun membre enregistré.</p>
+        <p class="text-muted">Aucun membre enregistré dans ce comité d'organisation.</p>
     @endif
-
-    <div class="footer">
-        BP:2112 Libreville-GABON Tel. +(241) 44 47 31, +(241) 44 47 34 -Email : commission@ceeac-eccas.org
-    </div>
-</body>
-</html>
+</div>
+@endsection

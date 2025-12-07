@@ -6,6 +6,7 @@ use App\Models\Meeting;
 use App\Models\Document;
 use App\Models\User;
 use App\Models\MeetingParticipant;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -325,26 +326,22 @@ class ReportingController extends Controller
 
     /**
      * Export PDF
+     * Génère un rapport PDF formaté avec le layout institutionnel CEEAC
      */
     protected function exportPdf(string $reportType, $startDate, $endDate)
     {
-        // Pour l'export PDF, on génère une vue HTML qui peut être convertie en PDF
-        // ou on utilise un package comme barryvdh/laravel-dompdf
-        
         $data = $this->getReportData($reportType, $startDate, $endDate);
         
-        $html = view('reports.exports.pdf', [
+        $pdf = Pdf::loadView('reports.exports.pdf', [
             'reportType' => $reportType,
             'data' => $data,
             'startDate' => $startDate,
             'endDate' => $endDate,
-        ])->render();
+        ])->setPaper('A4', 'portrait');
 
-        // Pour l'instant, on retourne le HTML (peut être converti en PDF avec un package)
-        // En production, utiliser: return PDF::loadHTML($html)->download("rapport_{$reportType}.pdf");
-        
-        return response($html)
-            ->header('Content-Type', 'text/html; charset=UTF-8');
+        $fileName = "rapport-{$reportType}-" . Carbon::parse($startDate)->format('Y-m-d') . ".pdf";
+
+        return $pdf->download($fileName);
     }
 
     /**

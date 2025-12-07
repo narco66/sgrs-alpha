@@ -25,9 +25,30 @@
             <i class="bi bi-pencil me-1"></i> Modifier
         </a>
         @endcan
-        <a href="{{ route('delegations.pdf', $delegation) }}" class="btn btn-outline-primary">
-            <i class="bi bi-file-earmark-pdf"></i> PDF
-        </a>
+        
+        {{-- Menu déroulant pour les exports PDF --}}
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Exports PDF
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{{ route('delegations.pdf', $delegation) }}">
+                        <i class="bi bi-file-text me-2"></i> Fiche de la délégation
+                    </a>
+                </li>
+                @if($delegation->members && $delegation->members->count() > 0)
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Badges participants</h6></li>
+                <li>
+                    <a class="dropdown-item" href="{{ route('delegations.badges', $delegation) }}">
+                        <i class="bi bi-person-badge me-2"></i> Tous les badges
+                    </a>
+                </li>
+                @endif
+            </ul>
+        </div>
+        
         <a href="{{ route('delegations.index') }}" class="btn btn-outline-secondary">
             Retour
         </a>

@@ -1,132 +1,186 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Délégation - {{ $delegation->title }}</title>
-    <style>
-        @page { margin: 110px 30px 70px 30px; }
-        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color: #111827; margin: 0; padding: 0 20px; box-sizing: border-box; }
-        h1 { margin: 0 0 12px; font-size: 20px; color: #0f172a; }
-        h2 { margin: 18px 0 8px; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
-        p { margin: 2px 0 6px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; }
-        th { background: #f8fafc; }
-        .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin-top: 8px; }
-        .muted { color: #6b7280; }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 11px; }
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-secondary { background: #e5e7eb; color: #374151; }
-        .header-table { width: 100%; margin-bottom: 14px; }
-        .footer { font-size: 11px; color: #6b7280; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 6px; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    @php
-        $logoPath = public_path('images/logo-ceeac.png');
-        if (! file_exists($logoPath)) {
-            $alt = glob(public_path('images/logo*ceeac.png'));
-            $logoPath = $alt[0] ?? null;
-        }
-    @endphp
-    <table class="header-table">
-        <tr>
-            <td style="width:70px;">
-                @if($logoPath)
-                    <img src="{{ $logoPath }}" alt="CEEAC" style="height:50px;">
-                @endif
-            </td>
-            <td style="text-align:right; font-size:13px; color:#0f172a; font-weight:bold;">
-                SGRS-CEEAC: Système de Gestion des Réunions Statutaires de la CEEAC
-            </td>
-        </tr>
-    </table>
+@extends('pdf.layouts.master')
 
+@section('title', 'Délégation - ' . $delegation->title)
+
+@section('content')
+{{-- EN-TÊTE DU DOCUMENT --}}
+<div class="section">
     <h1>{{ $delegation->title }}</h1>
-    <p class="muted">
-        @if($delegation->code) Code : {{ $delegation->code }} @endif
-        @if($delegation->country) — Pays : {{ $delegation->country }} @endif
+    
+    <p>
+        @if($delegation->is_active)
+            <span class="badge badge-success">Actif</span>
+        @else
+            <span class="badge badge-secondary">Inactif</span>
+        @endif
+        
+        @if($delegation->participation_status)
+            @include('pdf.partials.status-badge', ['status' => $delegation->participation_status, 'type' => 'delegation'])
+        @endif
     </p>
-
-    <div class="grid">
-        <div><strong>Statut :</strong>
-            <span class="badge {{ $delegation->is_active ? 'badge-success' : 'badge-secondary' }}">
-                {{ $delegation->is_active ? 'Actif' : 'Inactif' }}
-            </span>
-        </div>
-        <div><strong>Email contact :</strong> {{ $delegation->contact_email ?? '—' }}</div>
-        <div><strong>Téléphone :</strong> {{ $delegation->contact_phone ?? '—' }}</div>
-        <div><strong>Adresse :</strong> {{ $delegation->address ?? '—' }}</div>
-    </div>
-
-    @if($delegation->description)
-        <h2>Présentation</h2>
-        <p>{{ $delegation->description }}</p>
-    @endif
-
-    <h2>Réunion associée</h2>
-    @if($delegation->meeting)
-        <p><strong>{{ $delegation->meeting->title }}</strong></p>
-        <p class="muted">
-            {{ $delegation->meeting->start_at?->format('d/m/Y H:i') ?? 'Date non définie' }}
-            @if($delegation->meeting->room)
-                — Salle : {{ $delegation->meeting->room->name }}
-            @endif
+    
+    @if($delegation->code || $delegation->country)
+        <p class="text-muted">
+            @if($delegation->code) Code : {{ $delegation->code }} @endif
+            @if($delegation->code && $delegation->country) — @endif
+            @if($delegation->country) Pays : {{ $delegation->country }} @endif
         </p>
-    @else
-        <p class="muted">Aucune réunion liée.</p>
     @endif
+</div>
 
-    <h2>Participants de la délégation</h2>
-    @if($delegation->participants->count())
+{{-- INFORMATIONS GÉNÉRALES --}}
+<div class="section">
+    <h2>Informations générales</h2>
+    
+    @php
+        $entityTypes = [
+            'state_member' => 'État membre',
+            'international_organization' => 'Organisation internationale',
+            'technical_partner' => 'Partenaire technique',
+            'financial_partner' => 'Partenaire financier',
+            'other' => 'Autre'
+        ];
+    @endphp
+    
+    @include('pdf.partials.info-table', ['items' => [
+        ['label' => 'Type d\'entité', 'value' => $entityTypes[$delegation->entity_type] ?? $delegation->entity_type ?? 'Non renseigné'],
+        ['label' => 'Pays', 'value' => $delegation->country],
+        ['label' => 'Organisation', 'value' => $delegation->organization_name],
+        ['label' => 'Email de contact', 'value' => $delegation->contact_email],
+        ['label' => 'Téléphone', 'value' => $delegation->contact_phone],
+        ['label' => 'Adresse', 'value' => $delegation->address],
+    ]])
+</div>
+
+{{-- CHEF DE DÉLÉGATION --}}
+@if($delegation->head_of_delegation_name)
+<div class="section">
+    <h2>Chef de délégation</h2>
+    
+    @include('pdf.partials.info-table', ['items' => [
+        ['label' => 'Nom', 'value' => $delegation->head_of_delegation_name],
+        ['label' => 'Fonction', 'value' => $delegation->head_of_delegation_position],
+        ['label' => 'Email', 'value' => $delegation->head_of_delegation_email],
+    ]])
+</div>
+@endif
+
+{{-- PRÉSENTATION --}}
+@if($delegation->description)
+<div class="section">
+    <h2>Présentation</h2>
+    <p class="text-justify">{{ $delegation->description }}</p>
+</div>
+@endif
+
+{{-- RÉUNION ASSOCIÉE --}}
+<div class="section">
+    <h2>Réunion associée</h2>
+    
+    @if($delegation->meeting)
+        <div class="info-box info-box-primary">
+            <p><strong>{{ $delegation->meeting->title }}</strong></p>
+            <p class="text-muted">
+                {{ $delegation->meeting->start_at?->format('d/m/Y à H:i') ?? 'Date non définie' }}
+                @if($delegation->meeting->room)
+                    — Salle : {{ $delegation->meeting->room->name }}
+                @endif
+            </p>
+            @if($delegation->meeting->type)
+                <p class="text-small">Type : {{ $delegation->meeting->type->name }}</p>
+            @endif
+        </div>
+    @else
+        <p class="text-muted">Aucune réunion associée à cette délégation.</p>
+    @endif
+</div>
+
+{{-- MEMBRES DE LA DÉLÉGATION --}}
+<div class="section">
+    <h2>Membres de la délégation</h2>
+    
+    @php $members = $delegation->members ?? collect(); @endphp
+    
+    @if($members->count())
+        <p class="text-muted mb-2">{{ $members->count() }} membre(s) enregistré(s)</p>
+        
+        @php
+            $roles = [
+                'head' => 'Chef de délégation',
+                'deputy' => 'Chef adjoint',
+                'member' => 'Membre',
+                'advisor' => 'Conseiller',
+                'expert' => 'Expert',
+                'interpreter' => 'Interprète'
+            ];
+        @endphp
+        
         <table>
             <thead>
                 <tr>
-                    <th>Nom</th>
+                    <th>Nom complet</th>
                     <th>Email</th>
+                    <th>Téléphone</th>
+                    <th>Fonction</th>
                     <th>Rôle</th>
+                    <th>Statut</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($delegation->participants as $user)
+                @foreach($members as $member)
                     <tr>
-                        <td>{{ $user->name }}</td>
-                        <td>{{ $user->email ?? '—' }}</td>
-                        <td>{{ $user->pivot->role ?? 'Participant' }}</td>
+                        <td>
+                            {{ trim(($member->title ?? '') . ' ' . ($member->first_name ?? '') . ' ' . ($member->last_name ?? '')) ?: $member->full_name ?? '—' }}
+                        </td>
+                        <td>{{ $member->email ?? '—' }}</td>
+                        <td>{{ $member->phone ?? '—' }}</td>
+                        <td>{{ $member->position ?? '—' }}</td>
+                        <td>{{ $roles[$member->role] ?? $member->role ?? '—' }}</td>
+                        <td>@include('pdf.partials.status-badge', ['status' => $member->status ?? 'pending', 'type' => 'participant'])</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     @else
-        <p class="muted">Aucun participant renseigné.</p>
+        <p class="text-muted">Aucun membre enregistré pour cette délégation.</p>
     @endif
+</div>
 
-    <h2>Utilisateurs rattachés</h2>
-    @if($delegation->users->count())
-        <table>
-            <thead>
+{{-- PARTICIPANTS (si relation différente de members) --}}
+@if(isset($delegation->participants) && $delegation->participants->count())
+<div class="section">
+    <h2>Participants utilisateurs</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Service</th>
+                <th>Rôle</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($delegation->participants as $user)
                 <tr>
-                    <th>Nom</th>
-                    <th>Email</th>
-                    <th>Service</th>
+                    <td>{{ $user->name }}</td>
+                    <td>{{ $user->email ?? '—' }}</td>
+                    <td>{{ $user->service ?? '—' }}</td>
+                    <td>{{ $user->pivot->role ?? 'Participant' }}</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach($delegation->users as $user)
-                    <tr>
-                        <td>{{ $user->name }}</td>
-                        <td>{{ $user->email ?? '—' }}</td>
-                        <td>{{ $user->service ?? '—' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @else
-        <p class="muted">Aucun utilisateur rattaché.</p>
-    @endif
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
 
-    <div class="footer">
-        BP:2112 Libreville-GABON Tel. +(241) 44 47 31, +(241) 44 47 34 -Email : commission@ceeac-eccas.org
+{{-- NOTES --}}
+@if($delegation->notes)
+<div class="section">
+    <h2>Notes</h2>
+    <div class="info-box info-box-warning">
+        <p>{{ $delegation->notes }}</p>
     </div>
-</body>
-</html>
+</div>
+@endif
+@endsection
