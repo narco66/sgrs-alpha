@@ -110,9 +110,9 @@ class Delegation extends Model
     /**
      * Chef de délégation (membre avec role = 'head')
      */
-    public function head(): BelongsTo
+    public function head()
     {
-        return $this->belongsTo(DelegationMember::class, 'id', 'delegation_id')
+        return $this->hasOne(DelegationMember::class)
             ->where('role', DelegationMember::ROLE_HEAD);
     }
 

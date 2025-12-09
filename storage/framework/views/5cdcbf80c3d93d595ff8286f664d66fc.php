@@ -59,8 +59,8 @@
     }
 
     // Préparation des références fréquentes
-    $typeName     = optional($meeting->type)->name;
-    $typeCode     = optional($meeting->type)->code;
+    $typeName     = optional($meeting->meetingType)->name;
+    $typeCode     = optional($meeting->meetingType)->code;
     $creatorName  = optional($meeting->creator)->name;
     $roomName     = optional($meeting->room)->name;
 ?>

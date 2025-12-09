@@ -902,6 +902,7 @@
                             </li>
                         @endcan
 
+                        @hasanyrole('super-admin|admin|sg|dsi|staff')
                         <li class="nav-item">
                             <a href="{{ route('raci.index') }}"
                             class="nav-link nav-link-sub {{ request()->routeIs('raci.*') ? 'active' : '' }}">
@@ -909,6 +910,7 @@
                                 <span>Matrice RACI</span>
                             </a>
                         </li>
+                        @endhasanyrole
                     </ul>
                 </div>
             </div>

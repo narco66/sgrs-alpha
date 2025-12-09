@@ -40,7 +40,7 @@
     $relations = $meeting->getRelations();
     
     // Type de réunion - utiliser la relation chargée
-    $meetingTypeModel = $relations['type'] ?? null;
+    $meetingTypeModel = $relations['meetingType'] ?? null;
     $meetingTypeName = is_object($meetingTypeModel) ? $meetingTypeModel->name : null;
     
     // Comité

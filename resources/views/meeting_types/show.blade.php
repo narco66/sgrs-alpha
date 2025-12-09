@@ -9,9 +9,11 @@
         </p>
     </div>
     <div class="d-flex gap-2">
+        @can('update', $meetingType)
         <a href="{{ route('meeting-types.edit', $meetingType) }}" class="btn btn-outline-secondary">
             <i class="bi bi-pencil me-1"></i> Modifier
         </a>
+        @endcan
         <a href="{{ route('meeting-types.index') }}" class="btn btn-outline-secondary">
             Retour
         </a>

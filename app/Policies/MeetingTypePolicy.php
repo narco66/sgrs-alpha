@@ -13,7 +13,7 @@ class MeetingTypePolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.view');
     }
 
     /**
@@ -21,7 +21,7 @@ class MeetingTypePolicy
      */
     public function view(User $user, MeetingType $meetingType): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.view');
     }
 
     /**
@@ -29,7 +29,7 @@ class MeetingTypePolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.create');
     }
 
     /**
@@ -37,7 +37,7 @@ class MeetingTypePolicy
      */
     public function update(User $user, MeetingType $meetingType): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.update');
     }
 
     /**
@@ -45,7 +45,7 @@ class MeetingTypePolicy
      */
     public function delete(User $user, MeetingType $meetingType): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.delete');
     }
 
     /**
@@ -53,7 +53,7 @@ class MeetingTypePolicy
      */
     public function restore(User $user, MeetingType $meetingType): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.delete');
     }
 
     /**
@@ -61,6 +61,6 @@ class MeetingTypePolicy
      */
     public function forceDelete(User $user, MeetingType $meetingType): bool
     {
-        return false;
+        return $user->hasPermissionTo('meeting_types.delete');
     }
 }

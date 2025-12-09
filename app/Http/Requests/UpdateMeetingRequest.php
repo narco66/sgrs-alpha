@@ -85,10 +85,25 @@ class UpdateMeetingRequest extends FormRequest
             'terms_signed_document'      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             
             // Onglet actif pour redirection
-            'active_tab'                 => ['nullable', 'string', 'in:general,committee,terms,delegations'],
+            'active_tab'                 => ['nullable', 'string', 'in:general,logistics,committee,terms,delegations'],
             
             // Statut
             'status'                    => ['nullable', 'string'],
+            
+            // Champs logistiques
+            'logistics_transport'        => ['nullable', 'string', 'max:5000'],
+            'logistics_accommodation'    => ['nullable', 'string', 'max:5000'],
+            'logistics_catering'         => ['nullable', 'string', 'max:5000'],
+            'logistics_coffee_breaks'    => ['nullable', 'string', 'max:5000'],
+            'logistics_room_setup'       => ['nullable', 'string', 'max:5000'],
+            'logistics_av_equipment'     => ['nullable', 'string', 'max:5000'],
+            'logistics_interpreters'     => ['nullable', 'string', 'max:5000'],
+            'logistics_liaison_officers' => ['nullable', 'string', 'max:5000'],
+            'logistics_security'         => ['nullable', 'string', 'max:5000'],
+            'logistics_medical'          => ['nullable', 'string', 'max:5000'],
+            'logistics_protocol'         => ['nullable', 'string', 'max:5000'],
+            'logistics_other'            => ['nullable', 'string', 'max:5000'],
+            'logistics_notes'            => ['nullable', 'string', 'max:5000'],
         ];
     }
 

@@ -32,11 +32,11 @@
             @include('delegations._form')
 
             <div class="mt-4 d-flex justify-content-end gap-2">
-                <a href="{{ route('delegations.index') }}" class="btn btn-outline-secondary">
-                    Annuler
+                <a href="{{ route('delegations.index') }}" class="btn btn-outline-secondary" id="cancelBtn">
+                    <i class="bi bi-x-circle"></i> Annuler
                 </a>
-                <button type="submit" class="btn btn-primary">
-                    Mettre à jour
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="bi bi-check-circle"></i> Mettre à jour
                 </button>
             </div>
         </form>

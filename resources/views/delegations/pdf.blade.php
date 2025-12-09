@@ -86,8 +86,8 @@
                     — Salle : {{ $delegation->meeting->room->name }}
                 @endif
             </p>
-            @if($delegation->meeting->type)
-                <p class="text-small">Type : {{ $delegation->meeting->type->name }}</p>
+            @if($delegation->meeting->meetingType)
+                <p class="text-small">Type : {{ $delegation->meeting->meetingType->name }}</p>
             @endif
         </div>
     @else

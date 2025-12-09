@@ -71,8 +71,8 @@ class DelegationPolicy
      */
     public function delete(User $user, Delegation $delegation): bool
     {
-        // Vérifier qu'il n'y a pas d'utilisateurs
-        if ($delegation->users()->count() > 0) {
+        // Vérifier qu'il n'y a pas de membres
+        if ($delegation->members()->count() > 0) {
             return false;
         }
 

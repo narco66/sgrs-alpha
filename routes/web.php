@@ -94,8 +94,10 @@ Route::middleware(['auth', 'verified'])
             Route::get('pdf/agenda', [MeetingController::class, 'exportAgendaPdf'])->name('pdf.agenda');
         });
 
-        Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index');
-        Route::get('rooms/{room}', [RoomController::class, 'show'])->name('rooms.show');
+        // Gestion complète des salles
+        Route::resource('rooms', RoomController::class);
+        Route::post('rooms/{room}/toggle-status', [RoomController::class, 'toggleStatus'])->name('rooms.toggle-status');
+        Route::get('rooms/{room}/availability', [RoomController::class, 'checkAvailability'])->name('rooms.availability');
 
         Route::resource('documents', DocumentController::class)->except(['edit', 'update']);
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])

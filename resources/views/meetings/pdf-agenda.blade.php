@@ -61,7 +61,7 @@
 
 @php
     $relations = $meeting->getRelations();
-    $meetingTypeName = isset($relations['type']) && is_object($relations['type']) ? $relations['type']->name : null;
+    $meetingTypeName = isset($relations['meetingType']) && is_object($relations['meetingType']) ? $relations['meetingType']->name : null;
 @endphp
 
 {{-- INFORMATIONS DE LA RÉUNION --}}

@@ -902,6 +902,7 @@
                             </li>
                         <?php endif; ?>
 
+                        <?php if (\Illuminate\Support\Facades\Blade::check('hasanyrole', 'super-admin|admin|sg|dsi|staff')): ?>
                         <li class="nav-item">
                             <a href="<?php echo e(route('raci.index')); ?>"
                             class="nav-link nav-link-sub <?php echo e(request()->routeIs('raci.*') ? 'active' : ''); ?>">
@@ -909,6 +910,7 @@
                                 <span>Matrice RACI</span>
                             </a>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>

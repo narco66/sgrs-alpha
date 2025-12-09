@@ -16,7 +16,10 @@ class ReportingController extends Controller
 {
     public function __construct()
     {
+        // Accès aux statistiques pour tous les utilisateurs authentifiés
         $this->middleware('auth');
+        // Seul l'export nécessite une permission spécifique
+        $this->middleware('permission:reports.export')->only(['export']);
     }
 
     /**

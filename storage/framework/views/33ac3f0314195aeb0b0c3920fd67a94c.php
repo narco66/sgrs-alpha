@@ -22,4 +22,5 @@
 </table>
 <?php endif; ?>
 
+
 <?php /**PATH C:\laragon\www\sgrs-alpha\resources\views/pdf/partials/info-table.blade.php ENDPATH**/ ?>

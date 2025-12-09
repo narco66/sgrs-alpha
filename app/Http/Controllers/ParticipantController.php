@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ParticipantRequest;
-use App\Models\Participant;
 use App\Models\Meeting;
+use App\Models\Participant;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ParticipantController extends Controller
@@ -16,35 +17,44 @@ class ParticipantController extends Controller
 
     public function index(Request $request)
     {
-        $search      = $request->get('q');
-        $meetingId   = $request->get('meeting_id');
-        $status      = $request->get('status'); // active|inactive|all
-        $type        = $request->get('type');   // internal|external|all
+        $search    = $request->get('q');
+        $meetingId = $request->get('meeting_id');
+        $status    = $request->get('status'); // active|inactive|all
 
-        $participants = Participant::withCount('meetings')
+        // Liste les utilisateurs qui participent au moins a une reunion (participants_reunions)
+        $participants = User::whereHas('meetingParticipations')
+            ->with([
+                'meetingParticipations' => function ($q) use ($meetingId) {
+                    $q->with('meeting')
+                        ->when($meetingId, fn ($m) => $m->where('meeting_id', $meetingId));
+                },
+            ])
+            ->withCount([
+                'meetingParticipations as meetings_count' => function ($q) use ($meetingId) {
+                    if ($meetingId) {
+                        $q->where('meeting_id', $meetingId);
+                    }
+                },
+            ])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
-                    $sub->where('first_name', 'like', "%{$search}%")
+                    $sub->where('name', 'like', "%{$search}%")
+                        ->orWhere('first_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('institution', 'like', "%{$search}%");
+                        ->orWhere('service', 'like', "%{$search}%");
                 });
             })
-            // Table des réunions renommée en 'reunions', on cible cet alias pour le filtre
-            ->when($meetingId, fn ($q) => $q->whereHas('meetings', fn ($m) => $m->where('reunions.id', $meetingId)))
+            ->when($meetingId, fn ($q) => $q->whereHas('meetingParticipations', fn ($m) => $m->where('meeting_id', $meetingId)))
             ->when($status === 'active', fn ($q) => $q->where('is_active', true))
             ->when($status === 'inactive', fn ($q) => $q->where('is_active', false))
-            ->when($type === 'internal', fn ($q) => $q->where('is_internal', true))
-            ->when($type === 'external', fn ($q) => $q->where('is_internal', false))
-            ->orderBy('created_at', 'desc')
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         $meetings = Meeting::orderByDesc('start_at')->take(50)->get();
 
-        return view('participants.index', compact('participants', 'meetings', 'search', 'meetingId', 'status', 'type'));
+        return view('participants.index', compact('participants', 'meetings', 'search', 'meetingId', 'status'));
     }
 
     public function create()
@@ -58,7 +68,7 @@ class ParticipantController extends Controller
 
         return redirect()
             ->route('participants.index')
-            ->with('success', 'Le participant a été créé avec succès.');
+            ->with('success', 'Le participant a ete cree avec succes.');
     }
 
     public function show(Participant $participant)
@@ -77,7 +87,7 @@ class ParticipantController extends Controller
 
         return redirect()
             ->route('participants.index')
-            ->with('success', 'Le participant a été mis à jour avec succès.');
+            ->with('success', 'Le participant a ete mis a jour avec succes.');
     }
 
     public function destroy(Participant $participant)
@@ -86,6 +96,6 @@ class ParticipantController extends Controller
 
         return redirect()
             ->route('participants.index')
-            ->with('success', 'Le participant a été supprimé.');
+            ->with('success', 'Le participant a ete supprime.');
     }
 }

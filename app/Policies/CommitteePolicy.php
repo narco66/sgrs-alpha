@@ -13,7 +13,7 @@ class CommitteePolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.view');
     }
 
     /**
@@ -21,7 +21,7 @@ class CommitteePolicy
      */
     public function view(User $user, Committee $committee): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.view');
     }
 
     /**
@@ -29,7 +29,7 @@ class CommitteePolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.create');
     }
 
     /**
@@ -37,7 +37,7 @@ class CommitteePolicy
      */
     public function update(User $user, Committee $committee): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.update');
     }
 
     /**
@@ -45,7 +45,7 @@ class CommitteePolicy
      */
     public function delete(User $user, Committee $committee): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.delete');
     }
 
     /**
@@ -53,7 +53,7 @@ class CommitteePolicy
      */
     public function restore(User $user, Committee $committee): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.delete');
     }
 
     /**
@@ -61,6 +61,6 @@ class CommitteePolicy
      */
     public function forceDelete(User $user, Committee $committee): bool
     {
-        return false;
+        return $user->hasPermissionTo('committees.delete');
     }
 }

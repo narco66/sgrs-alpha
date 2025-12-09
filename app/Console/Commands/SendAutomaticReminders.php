@@ -41,7 +41,7 @@ class SendAutomaticReminders extends Command
         $targetDate = $now->copy()->addDays($daysBefore)->startOfDay();
         $endDate = $targetDate->copy()->endOfDay();
 
-        $meetings = Meeting::with(['participants.user', 'type', 'room'])
+        $meetings = Meeting::with(['participants.user', 'meetingType', 'room'])
             ->whereBetween('start_at', [$targetDate, $endDate])
             ->whereIn('status', ['planifiee', 'en_preparation', 'scheduled'])
             ->whereNull('deleted_at')

@@ -359,9 +359,9 @@
 
                                             </span>
                                         <?php endif; ?>
-                                        <?php if($meeting->type): ?>
+                                        <?php if($meeting->meetingType): ?>
                                             <span class="badge-modern badge-modern-primary">
-                                                <?php echo e(is_object($meeting->type) ? $meeting->type->name : $meeting->type); ?>
+                                                <?php echo e($meeting->meetingType->name); ?>
 
                                             </span>
                                         <?php endif; ?>

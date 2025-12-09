@@ -279,9 +279,9 @@
                             </td>
 
                             <td>
-                                @if($meeting->type && is_object($meeting->type))
+                                @if($meeting->meetingType)
                                     <span class="badge-modern badge-modern-info">
-                                        {{ $meeting->type->name }}
+                                        {{ $meeting->meetingType->name }}
                                     </span>
                                 @else
                                     <span class="text-muted small">—</span>

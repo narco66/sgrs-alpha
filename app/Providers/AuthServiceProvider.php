@@ -3,7 +3,11 @@
 namespace App\Providers;
 
 use App\Models\Meeting;
+use App\Models\MeetingType;
+use App\Models\Committee;
 use App\Policies\MeetingPolicy;
+use App\Policies\MeetingTypePolicy;
+use App\Policies\CommitteePolicy;
 use App\Policies\RolePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Spatie\Permission\Models\Role;
@@ -12,6 +16,8 @@ class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
         Meeting::class => MeetingPolicy::class,
+        MeetingType::class => MeetingTypePolicy::class,
+        Committee::class => CommitteePolicy::class,
         \App\Models\Participant::class => \App\Policies\ParticipantPolicy::class,
         \App\Models\Document::class => \App\Policies\DocumentPolicy::class,
         \App\Models\AuditLog::class => \App\Policies\AuditLogPolicy::class,

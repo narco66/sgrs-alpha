@@ -216,26 +216,62 @@ class DelegationMemberController extends Controller
 
     /**
      * Export de tous les badges d'une délégation en PDF.
+     * Inclut le Chef de Délégation (si renseigné dans les champs de la délégation)
+     * et tous les membres enregistrés.
      */
     public function exportAllBadgesPdf(Delegation $delegation)
     {
         $this->authorize('view', $delegation);
 
-        $delegation->load(['members', 'meeting']);
+        $delegation->load(['members' => function($query) {
+            $query->orderByRaw("CASE WHEN role = 'head' THEN 0 ELSE 1 END")
+                  ->orderBy('last_name');
+        }, 'meeting']);
 
-        $html = '';
-        foreach ($delegation->members as $member) {
-            $html .= view('participants.pdf-badge', [
-                'participant' => $member,
-                'delegation' => $delegation,
-                'meeting' => $delegation->meeting,
-            ])->render();
-            $html .= '<div style="page-break-after: always;"></div>';
+        // Construire la liste des participants pour les badges
+        $participants = collect();
+
+        // 1. Ajouter le Chef de Délégation depuis les champs de la délégation (si renseigné et pas déjà dans les membres)
+        if (!empty($delegation->head_of_delegation_name)) {
+            // Vérifier si ce chef n'est pas déjà dans les membres
+            $headAlreadyInMembers = $delegation->members->contains(function($member) use ($delegation) {
+                return $member->role === 'head' && 
+                       strtolower(trim($member->first_name . ' ' . $member->last_name)) === strtolower(trim($delegation->head_of_delegation_name));
+            });
+
+            if (!$headAlreadyInMembers) {
+                // Créer un objet pseudo-membre pour le chef de délégation
+                $headOfDelegation = new \stdClass();
+                $headOfDelegation->first_name = '';
+                $headOfDelegation->last_name = $delegation->head_of_delegation_name;
+                $headOfDelegation->full_name = $delegation->head_of_delegation_name;
+                $headOfDelegation->position = $delegation->head_of_delegation_position;
+                $headOfDelegation->email = $delegation->head_of_delegation_email;
+                $headOfDelegation->title = '';
+                $headOfDelegation->role = 'head';
+                $headOfDelegation->status = $delegation->participation_status ?? 'confirmed';
+                
+                $participants->push($headOfDelegation);
+            }
         }
 
-        $pdf = Pdf::loadHTML($html)->setPaper([0, 0, 241, 153], 'landscape');
+        // 2. Ajouter tous les membres de la délégation
+        foreach ($delegation->members as $member) {
+            $participants->push($member);
+        }
 
-        $fileName = 'badges-delegation-' . $delegation->id . '.pdf';
+        // Si aucun participant, retourner une erreur
+        if ($participants->isEmpty()) {
+            return back()->with('error', 'Aucun membre à inclure dans les badges.');
+        }
+
+        $pdf = Pdf::loadView('participants.pdf-badges-multiple', [
+            'participants' => $participants,
+            'delegation' => $delegation,
+            'meeting' => $delegation->meeting,
+        ])->setPaper([0, 0, 241, 153], 'landscape'); // Format badge 85mm x 54mm
+
+        $fileName = 'badges-delegation-' . ($delegation->country ?? $delegation->id) . '.pdf';
 
         return $pdf->download($fileName);
     }

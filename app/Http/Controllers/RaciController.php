@@ -9,11 +9,14 @@ class RaciController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+        // Accès réservé aux personnels internes (pas aux invités ni aux délégations)
+        $this->middleware('role:super-admin|admin|sg|dsi|staff');
     }
 
     /**
      * Affichage de la matrice RACI
      * Section 5.2 du cahier des charges
+     * Accessible uniquement aux personnels internes de la CEEAC
      */
     public function index()
     {

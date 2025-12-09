@@ -32,7 +32,7 @@ class MeetingInvitationNotification extends Notification implements ShouldQueue
             ->greeting('Bonjour ' . ($notifiable->first_name ?? $notifiable->name ?? ''))
             ->line('Vous êtes invité(e) à participer à une réunion statutaire de la CEEAC.')
             ->line('**Titre :** ' . $meeting->title)
-            ->line('**Type :** ' . ($meeting->type?->name ?? 'Non renseigné'))
+            ->line('**Type :** ' . ($meeting->meetingType?->name ?? 'Non renseigné'))
             ->line('**Date :** ' . $meeting->start_at?->format('d/m/Y'))
             ->line('**Heure :** ' . $meeting->start_at?->format('H:i'))
             ->when($meeting->end_at, function ($mail) use ($meeting) {
@@ -53,7 +53,7 @@ class MeetingInvitationNotification extends Notification implements ShouldQueue
             'meeting_id'   => $this->meeting->id,
             'title'        => $this->meeting->title,
             'start_at'     => $this->meeting->start_at?->toIso8601String(),
-            'meeting_type' => $this->meeting->type?->name,
+            'meeting_type' => $this->meeting->meetingType?->name,
             'room'         => $this->meeting->room?->name,
             'type'         => 'meeting_invitation',
             'message'      => 'Vous avez été invité(e) à la réunion : ' . $this->meeting->title,

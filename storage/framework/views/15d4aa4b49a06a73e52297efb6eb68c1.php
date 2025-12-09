@@ -282,9 +282,9 @@
                             </td>
 
                             <td>
-                                <?php if($meeting->type && is_object($meeting->type)): ?>
+                                <?php if($meeting->meetingType): ?>
                                     <span class="badge-modern badge-modern-info">
-                                        <?php echo e($meeting->type->name); ?>
+                                        <?php echo e($meeting->meetingType->name); ?>
 
                                     </span>
                                 <?php else: ?>

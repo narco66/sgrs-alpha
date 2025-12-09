@@ -49,13 +49,11 @@ class User extends Authenticatable
 
     /**
      * Casts automatiques (Laravel 11).
-     * Note: Le cast 'hashed' pour password est retiré car il peut causer des problèmes
-     * avec les mots de passe déjà hashés dans la base de données.
-     * Les mots de passe doivent être hashés explicitement avec Hash::make() lors de la création/mise à jour.
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_active'        => 'boolean',
+        'password' => 'hashed',
     ];
 
     /* ============================================================

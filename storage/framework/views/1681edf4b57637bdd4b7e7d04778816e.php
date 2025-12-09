@@ -15,12 +15,10 @@
         <h3 class="page-title mb-1">Participants</h3>
         <p class="text-muted mb-0 small">Accueil / Participants</p>
     </div>
-    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', \App\Models\Participant::class)): ?>
-        <a href="<?php echo e(route('participants.create')); ?>" class="btn btn-modern btn-modern-primary">
-            <i class="bi bi-person-plus"></i>
-            Nouveau participant
-        </a>
-    <?php endif; ?>
+    <a href="<?php echo e(route('meetings.index')); ?>" class="btn btn-modern btn-modern-secondary">
+        <i class="bi bi-calendar3"></i>
+        Gérer les participants par réunion
+    </a>
 </div>
 
 <?php if(session('success')): ?>
@@ -60,7 +58,7 @@
         <form method="GET" action="<?php echo e(route('participants.index')); ?>" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label">Recherche</label>
-                <input type="text" name="q" class="form-control" value="<?php echo e($search ?? ''); ?>" placeholder="Nom, email, institution">
+                <input type="text" name="q" class="form-control" value="<?php echo e($search ?? ''); ?>" placeholder="Nom, email, service">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Réunion</label>
@@ -74,7 +72,7 @@
                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label">Statut</label>
                 <select name="status" class="form-select">
                     <option value="all" <?php if(($status ?? 'all') === 'all'): echo 'selected'; endif; ?>>Tous</option>
@@ -82,15 +80,7 @@
                     <option value="inactive" <?php if(($status ?? '') === 'inactive'): echo 'selected'; endif; ?>>Inactifs</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Type</label>
-                <select name="type" class="form-select">
-                    <option value="all" <?php if(($type ?? 'all') === 'all'): echo 'selected'; endif; ?>>Tous</option>
-                    <option value="internal" <?php if(($type ?? '') === 'internal'): echo 'selected'; endif; ?>>Interne</option>
-                    <option value="external" <?php if(($type ?? '') === 'external'): echo 'selected'; endif; ?>>Externe</option>
-                </select>
-            </div>
-            <div class="col-md-1 d-flex gap-2">
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-modern btn-modern-primary w-100" title="Appliquer les filtres">
                     <i class="bi bi-search"></i>
                 </button>
@@ -118,10 +108,9 @@
             <table class="table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Nom</th>
-                        <th>Institution</th>
-                        <th>Pays</th>
-                        <th>Type</th>
+                        <th>Participant</th>
+                        <th>Email</th>
+                        <th>Service</th>
                         <th>Statut</th>
                         <th>Réunions</th>
                         <th class="text-end">Actions</th>
@@ -129,17 +118,14 @@
                 </thead>
                 <tbody>
                 <?php $__empty_1 = true; $__currentLoopData = $participants; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $participant): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                    <?php
+                        $displayName = $participant->name
+                            ?: trim(($participant->first_name ?? '') . ' ' . ($participant->last_name ?? ''));
+                    ?>
                     <tr>
-                        <td class="fw-semibold"><?php echo e($participant->full_name); ?></td>
-                        <td><?php echo e($participant->institution ?? '—'); ?></td>
-                        <td><?php echo e($participant->country ?? '—'); ?></td>
-                        <td>
-                            <?php if($participant->is_internal): ?>
-                                <span class="badge-modern badge-modern-primary">Interne</span>
-                            <?php else: ?>
-                                <span class="badge-modern badge-modern-info">Externe</span>
-                            <?php endif; ?>
-                        </td>
+                        <td class="fw-semibold"><?php echo e($displayName ?: 'Utilisateur'); ?></td>
+                        <td><?php echo e($participant->email ?? 'N/A'); ?></td>
+                        <td><?php echo e($participant->service ?? 'Non renseigné'); ?></td>
                         <td>
                             <?php if($participant->is_active): ?>
                                 <span class="badge-modern badge-modern-success">Actif</span>
@@ -149,39 +135,35 @@
                         </td>
                         <td>
                             <span class="badge bg-light text-dark"><?php echo e($participant->meetings_count ?? 0); ?></span>
+                            <?php if(($participant->meetingParticipations ?? null)?->isNotEmpty()): ?>
+                                <div class="small text-muted mt-1">
+                                    <?php $__currentLoopData = ($participant->meetingParticipations->take(3) ?? []); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mp): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <div>- <?php echo e($mp->meeting?->title ?? 'Réunion'); ?> (<?php echo e($mp->meeting?->start_at?->format('d/m')); ?>)</div>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                    <?php if(($participant->meetingParticipations->count() ?? 0) > 3): ?>
+                                        <div class="text-muted">+ <?php echo e($participant->meetingParticipations->count() - 3); ?> autres...</div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </td>
                         <td class="text-end">
                             <div class="table-actions">
-                                <a href="<?php echo e(route('participants.show', $participant)); ?>"
+                                <a href="<?php echo e(route('users.show', $participant)); ?>"
                                    class="btn btn-sm btn-outline-secondary"
                                    data-bs-toggle="tooltip"
-                                   title="Voir les détails">
-                                    <i class="bi bi-eye"></i>
+                                   title="Voir la fiche utilisateur">
+                                    <i class="bi bi-person"></i>
                                 </a>
-                                <a href="<?php echo e(route('participants.edit', $participant)); ?>"
-                                   class="btn btn-sm btn-outline-primary"
-                                   data-bs-toggle="tooltip"
-                                   title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form action="<?php echo e(route('participants.destroy', $participant)); ?>" method="POST" class="d-inline"
-                                      onsubmit="return confirm('Confirmez-vous la suppression de ce participant ?');">
-                                    <?php echo csrf_field(); ?>
-                                    <?php echo method_field('DELETE'); ?>
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Supprimer">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
                             </div>
                         </td>
                     </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="6" class="text-center py-5">
                             <div class="empty-state">
                                 <i class="bi bi-inbox empty-state-icon"></i>
                                 <div class="empty-state-title">Aucun participant</div>
-                                <div class="empty-state-text">Aucun participant enregistré pour le moment.</div>
+                                <div class="empty-state-text">Aucun participant relié à une réunion pour le moment.</div>
                                 <a href="<?php echo e(route('participants.index')); ?>" class="btn btn-modern btn-modern-secondary mt-3">Réinitialiser les filtres</a>
                             </div>
                         </td>
@@ -194,7 +176,8 @@
         <?php if($participants->hasPages()): ?>
             <div class="modern-card-footer">
                 <div class="small text-muted">
-                    Affichage de <?php echo e($participants->firstItem()); ?> à <?php echo e($participants->lastItem()); ?> 
+                    Affichage de <?php echo e($participants->firstItem()); ?> à <?php echo e($participants->lastItem()); ?>
+
                     sur <?php echo e($participants->total()); ?> participant<?php echo e($participants->total() > 1 ? 's' : ''); ?>
 
                 </div>

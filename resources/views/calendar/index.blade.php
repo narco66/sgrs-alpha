@@ -203,9 +203,9 @@
                                                     {{ $meeting->title }}
                                                 </a>
                                                 <div class="small text-muted mt-1">
-                                                    @if($meeting->type)
+                                                    @if($meeting->meetingType)
                                                         <span class="badge bg-info-subtle text-info me-1">
-                                                            {{ $meeting->type->name }}
+                                                            {{ $meeting->meetingType->name }}
                                                         </span>
                                                     @endif
                                                     @if($meeting->committee)

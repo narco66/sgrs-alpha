@@ -21,8 +21,8 @@ class SendMeetingReminders extends Command
         $now = Carbon::now();
 
         // On récupère les réunions pour lesquelles un rappel est configuré
-        // et qui n’ont pas encore été rappelées.
-        $meetings = Meeting::with(['participants.user', 'type', 'room'])
+        // et qui n'ont pas encore été rappelées.
+        $meetings = Meeting::with(['delegations.members', 'meetingType', 'room'])
             ->where('reminder_minutes_before', '>', 0)
             ->whereNull('reminder_sent_at')
             ->get()
@@ -31,7 +31,7 @@ class SendMeetingReminders extends Command
                     return false;
                 }
 
-                $diff = $now->diffInMinutes($meeting->start_at, false); // Minutes jusqu’au début (peut être négatif)
+                $diff = $now->diffInMinutes($meeting->start_at, false); // Minutes jusqu'au début (peut être négatif)
 
                 // On envoie le rappel lorsque diff == reminder_minutes_before,
                 // avec une tolérance de [-window, +window] minutes.
@@ -47,9 +47,30 @@ class SendMeetingReminders extends Command
         foreach ($meetings as $meeting) {
             $this->info("Envoi de rappels pour la réunion #{$meeting->id} – {$meeting->title}");
 
-            foreach ($meeting->participants as $participant) {
-                if ($participant->user) {
-                    $participant->user->notify(new MeetingReminderNotification($meeting));
+            // Envoyer aux délégations et leurs membres
+            foreach ($meeting->delegations as $delegation) {
+                // Envoyer au chef de délégation (champ direct de la délégation)
+                if (!empty($delegation->head_of_delegation_email)) {
+                    try {
+                        \Illuminate\Support\Facades\Notification::route('mail', [
+                            $delegation->head_of_delegation_email => $delegation->head_of_delegation_name ?? 'Chef de Délégation'
+                        ])->notify(new MeetingReminderNotification($meeting));
+                    } catch (\Exception $e) {
+                        $this->error("Erreur envoi rappel chef délégation {$delegation->head_of_delegation_email}: " . $e->getMessage());
+                    }
+                }
+                
+                // Envoyer à tous les membres de la délégation
+                foreach ($delegation->members as $member) {
+                    if (!empty($member->email)) {
+                        try {
+                            \Illuminate\Support\Facades\Notification::route('mail', [
+                                $member->email => $member->full_name ?? $member->first_name
+                            ])->notify(new MeetingReminderNotification($meeting));
+                        } catch (\Exception $e) {
+                            $this->error("Erreur envoi rappel membre {$member->email}: " . $e->getMessage());
+                        }
+                    }
                 }
             }
 

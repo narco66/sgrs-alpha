@@ -357,9 +357,9 @@
                                                 {{ $meeting->room->name }}
                                             </span>
                                         @endif
-                                        @if($meeting->type)
+                                        @if($meeting->meetingType)
                                             <span class="badge-modern badge-modern-primary">
-                                                {{ is_object($meeting->type) ? $meeting->type->name : $meeting->type }}
+                                                {{ $meeting->meetingType->name }}
                                             </span>
                                         @endif
                                     </div>

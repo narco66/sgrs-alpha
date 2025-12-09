@@ -83,7 +83,7 @@
                 <td style="font-weight: bold; border: none; padding: 4px 0;">Type de réunion :</td>
                 @php
                     $relations = $meeting->getRelations();
-                    $meetingTypeName = isset($relations['type']) && is_object($relations['type']) ? $relations['type']->name : null;
+                    $meetingTypeName = isset($relations['meetingType']) && is_object($relations['meetingType']) ? $relations['meetingType']->name : null;
                 @endphp
                 <td style="border: none; padding: 4px 0;">{{ $meetingTypeName ?? '___________________' }}</td>
             </tr>

@@ -94,37 +94,20 @@ class DelegationController extends Controller
         $this->authorize('create', Delegation::class);
 
         try {
-            \Log::info('=== DÉBUT CRÉATION DÉLÉGATION ===', [
-                'user_id' => $request->user()->id,
-                'meeting_id' => $request->input('meeting_id'),
-                'request_data' => $request->except(['_token', 'members']),
-                'members_count' => count($request->input('members', []))
-            ]);
+            // Logs détaillés seulement en développement
+            if (app()->environment('local', 'testing')) {
+                \Log::info('=== DÉBUT CRÉATION DÉLÉGATION ===', [
+                    'user_id' => $request->user()->id,
+                    'meeting_id' => $request->input('meeting_id'),
+                    'entity_type' => $request->input('entity_type'),
+                    'members_count' => count($request->input('members', []))
+                ]);
+            }
             
             $data = $request->validated();
             $membersData = $request->input('members', []);
-            
-            \Log::info('Données validées par FormRequest', [
-                'data_keys' => array_keys($data),
-                'meeting_id' => $data['meeting_id'] ?? null,
-                'entity_type' => $data['entity_type'] ?? null,
-                'title' => $data['title'] ?? null,
-                'members_count' => count($membersData)
-            ]);
 
-            // Validation manuelle des champs conditionnels
-            $entityType = $data['entity_type'] ?? null;
-            if (in_array($entityType, ['state_member', 'other']) && empty($data['country'])) {
-                return back()
-                    ->withInput()
-                    ->withErrors(['country' => 'Le champ pays est requis pour ce type d\'entité.']);
-            }
-
-            if (in_array($entityType, ['international_organization', 'technical_partner', 'financial_partner']) && empty($data['organization_name'])) {
-                return back()
-                    ->withInput()
-                    ->withErrors(['organization_name' => 'Le nom de l\'organisation est requis pour ce type d\'entité.']);
-            }
+            // La validation conditionnelle est gérée par StoreDelegationRequest
 
             // S'assurer que is_active a une valeur par défaut
             if (!isset($data['is_active'])) {
@@ -136,24 +119,13 @@ class DelegationController extends Controller
                 $data['participation_status'] = 'invited';
             }
 
-            \Log::info('Tentative de création de la délégation en base de données', ['data' => $data]);
+            $delegation = Delegation::create($data);
             
-            try {
-                $delegation = Delegation::create($data);
-                \Log::info('✅ DÉLÉGATION CRÉÉE AVEC SUCCÈS', [
+            if (app()->environment('local', 'testing')) {
+                \Log::info('✅ DÉLÉGATION CRÉÉE', [
                     'delegation_id' => $delegation->id,
-                    'title' => $delegation->title,
-                    'meeting_id' => $delegation->meeting_id,
-                    'entity_type' => $delegation->entity_type
+                    'title' => $delegation->title
                 ]);
-            } catch (\Exception $createException) {
-                \Log::error('❌ ERREUR LORS DE LA CRÉATION DE LA DÉLÉGATION', [
-                    'message' => $createException->getMessage(),
-                    'file' => $createException->getFile(),
-                    'line' => $createException->getLine(),
-                    'data' => $data
-                ]);
-                throw $createException;
             }
 
             // Créer les membres de la délégation
@@ -184,17 +156,6 @@ class DelegationController extends Controller
                             $memberRole = 'member'; // Valeur par défaut valide
                         }
                         
-                        \Log::info('Création d\'un membre de délégation', [
-                            'delegation_id' => $delegation->id,
-                            'member_data' => [
-                                'first_name' => $firstName,
-                                'last_name' => $lastName,
-                                'email' => $email,
-                                'role' => $memberRole,
-                                'status' => $memberStatus,
-                            ]
-                        ]);
-                        
                         DelegationMember::create([
                             'delegation_id' => $delegation->id,
                             'first_name' => $firstName,
@@ -209,8 +170,6 @@ class DelegationController extends Controller
                             'status' => $memberStatus,
                             'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
                         ]);
-                        
-                        \Log::info('Membre créé avec succès', ['delegation_id' => $delegation->id, 'email' => $email]);
                     }
                 }
             }
@@ -260,33 +219,42 @@ class DelegationController extends Controller
                 $message .= '</div>';
             }
 
-            \Log::info('Redirection', ['route' => $redirectRoute, 'meeting_id' => $delegation->meeting_id, 'members_count' => $membersCount]);
 
             return redirect($redirectRoute)
                 ->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Erreur de validation lors de la création de la délégation', [
-                'errors' => $e->errors(),
-                'request_data' => $request->except(['_token', 'members'])
-            ]);
-
             return back()
                 ->withInput()
                 ->withErrors($e->errors());
-        } catch (\Exception $e) {
-            \Log::error('Erreur lors de la création de la délégation', [
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Erreur de base de données lors de la création de la délégation', [
                 'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->except(['_token', 'members'])
+                'meeting_id' => $request->input('meeting_id')
             ]);
 
             $errorMessage = '<div class="d-flex align-items-center">';
             $errorMessage .= '<i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i>';
             $errorMessage .= '<div>';
-            $errorMessage .= '<strong>Erreur lors de la création de la délégation</strong><br>';
-            $errorMessage .= 'Une erreur est survenue. Veuillez vérifier les informations saisies et réessayer.';
+            $errorMessage .= '<strong>Erreur de base de données</strong><br>';
+            $errorMessage .= 'Impossible de créer la délégation. Vérifiez que la réunion existe encore.';
+            $errorMessage .= '</div>';
+            $errorMessage .= '</div>';
+
+            return back()
+                ->withInput()
+                ->with('error', $errorMessage);
+        } catch (\Exception $e) {
+            \Log::error('Erreur inattendue lors de la création de la délégation', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            $errorMessage = '<div class="d-flex align-items-center">';
+            $errorMessage .= '<i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i>';
+            $errorMessage .= '<div>';
+            $errorMessage .= '<strong>Erreur technique</strong><br>';
+            $errorMessage .= 'Une erreur inattendue est survenue. Veuillez réessayer ou contacter l\'administrateur.';
             $errorMessage .= '</div>';
             $errorMessage .= '</div>';
 

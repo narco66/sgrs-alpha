@@ -42,8 +42,8 @@
             @if($committee->meeting->room)
                 <p class="text-small">Salle : {{ $committee->meeting->room->name }}</p>
             @endif
-            @if($committee->meeting->type)
-                <p class="text-small">Type : {{ $committee->meeting->type->name }}</p>
+            @if($committee->meeting->meetingType)
+                <p class="text-small">Type : {{ $committee->meeting->meetingType->name }}</p>
             @endif
         </div>
     @else

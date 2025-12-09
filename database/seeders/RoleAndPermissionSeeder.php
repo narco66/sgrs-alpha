@@ -101,6 +101,9 @@ class RoleAndPermissionSeeder extends Seeder
             // Audit
             'audit_logs.view',
 
+            // Matrice RACI (personnel interne uniquement)
+            'raci.view',
+
             // Demandes
             'meeting_requests.view',
             'meeting_requests.create',
@@ -212,6 +215,8 @@ class RoleAndPermissionSeeder extends Seeder
                 'roles.create',
                 'roles.update',
                 'roles.delete',
+
+                'raci.view',
             ]);
         }
 
@@ -241,6 +246,8 @@ class RoleAndPermissionSeeder extends Seeder
                 'notifications.view',
 
                 'reports.view',
+
+                'raci.view',
 
                 'meeting_requests.view',
                 'meeting_requests.create',
@@ -302,6 +309,8 @@ class RoleAndPermissionSeeder extends Seeder
 
                 'reports.view',
 
+                'raci.view',
+
                 'meeting_requests.view',
                 'meeting_requests.approve',
 
@@ -334,6 +343,8 @@ class RoleAndPermissionSeeder extends Seeder
                 'calendar.view',
 
                 'notifications.view',
+
+                'raci.view',
 
                 'meeting_requests.view',
                 'meeting_requests.create',

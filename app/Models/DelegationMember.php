@@ -16,9 +16,9 @@ class DelegationMember extends Model
     use HasFactory;
 
     /**
-     * Nom de la table en français
+     * Nom de la table standardisé
      */
-    protected $table = 'membres_delegations';
+    protected $table = 'delegation_members';
 
     protected $fillable = [
         'delegation_id',
@@ -149,6 +149,11 @@ class DelegationMember extends Model
         return $this->status === self::STATUS_CONFIRMED && $this->confirmed_at !== null;
     }
 }
+
+
+
+
+
 
 
 

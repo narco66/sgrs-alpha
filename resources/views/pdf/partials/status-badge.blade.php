@@ -49,3 +49,8 @@
 
 <span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span>
 
+
+
+
+
+

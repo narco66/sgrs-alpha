@@ -11,9 +11,11 @@
         </div>
         <p class="text-muted mb-0 mt-1">Paramétrage des catégories de réunions statutaires (CCE, CDM, etc.).</p>
     </div>
+    @can('create', App\Models\MeetingType::class)
     <a href="{{ route('meeting-types.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle me-1"></i> Nouveau type
     </a>
+    @endcan
 </div>
 
 <div class="card shadow-sm border-0 mb-3">
@@ -97,10 +99,13 @@
                             @endif
                         </td>
                         <td class="text-end">
+                            @can('update', $type)
                             <a href="{{ route('meeting-types.edit', $type) }}"
                                class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            @endcan
+                            @can('delete', $type)
                             <form action="{{ route('meeting-types.destroy', $type) }}"
                                   method="POST"
                                   class="d-inline"
@@ -111,6 +116,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            @endcan
                         </td>
                     </tr>
                 @empty

@@ -43,6 +43,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link {{ $activeTab === 'logistics' ? 'active' : '' }}" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button" role="tab">
+                    <i class="bi bi-truck"></i> Note logistique
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link {{ $activeTab === 'committee' ? 'active' : '' }}" id="committee-tab" data-bs-toggle="tab" data-bs-target="#committee" type="button" role="tab">
                     <i class="bi bi-people"></i> Comité d'organisation
                 </button>
@@ -239,7 +244,205 @@
                 </div>
             </div>
 
-            {{-- ONGLET 2: Comité d'organisation --}}
+            {{-- ONGLET 2: Note Logistique --}}
+            <div class="tab-pane fade {{ $activeTab === 'logistics' ? 'show active' : '' }}" id="logistics" role="tabpanel">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">
+                            <i class="bi bi-truck text-primary"></i> Éléments de la note logistique
+                        </h5>
+                        <p class="text-muted mb-4">
+                            Renseignez les informations logistiques de la réunion. Ces données seront utilisées pour générer la note logistique officielle.
+                        </p>
+
+                        <div class="row g-4">
+                            {{-- Transport --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-airplane text-primary"></i> Transport des délégations
+                                </label>
+                                <textarea name="logistics_transport"
+                                          class="form-control @error('logistics_transport') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Moyens de transport, navettes, contacts...">{{ old('logistics_transport', $meeting->logistics_transport) }}</textarea>
+                                @error('logistics_transport')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Hébergement --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-building text-primary"></i> Hébergement
+                                </label>
+                                <textarea name="logistics_accommodation"
+                                          class="form-control @error('logistics_accommodation') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Hôtels, réservations, contacts...">{{ old('logistics_accommodation', $meeting->logistics_accommodation) }}</textarea>
+                                @error('logistics_accommodation')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Restauration --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-cup-hot text-primary"></i> Restauration
+                                </label>
+                                <textarea name="logistics_catering"
+                                          class="form-control @error('logistics_catering') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Repas officiels, traiteurs, menus...">{{ old('logistics_catering', $meeting->logistics_catering) }}</textarea>
+                                @error('logistics_catering')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Pauses café --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-cup text-primary"></i> Pauses café
+                                </label>
+                                <textarea name="logistics_coffee_breaks"
+                                          class="form-control @error('logistics_coffee_breaks') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Organisation des pauses café...">{{ old('logistics_coffee_breaks', $meeting->logistics_coffee_breaks) }}</textarea>
+                                @error('logistics_coffee_breaks')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Disposition de la salle --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-layout-text-window text-primary"></i> Disposition de la salle
+                                </label>
+                                <textarea name="logistics_room_setup"
+                                          class="form-control @error('logistics_room_setup') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Configuration, plan de salle, agencement...">{{ old('logistics_room_setup', $meeting->logistics_room_setup) }}</textarea>
+                                @error('logistics_room_setup')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Matériel audio/visuel --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-display text-primary"></i> Matériel audio/visuel
+                                </label>
+                                <textarea name="logistics_av_equipment"
+                                          class="form-control @error('logistics_av_equipment') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Équipements, besoins techniques...">{{ old('logistics_av_equipment', $meeting->logistics_av_equipment) }}</textarea>
+                                @error('logistics_av_equipment')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Interprètes --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-translate text-primary"></i> Interprètes
+                                </label>
+                                <textarea name="logistics_interpreters"
+                                          class="form-control @error('logistics_interpreters') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Langues, effectifs, cabines...">{{ old('logistics_interpreters', $meeting->logistics_interpreters) }}</textarea>
+                                @error('logistics_interpreters')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Agents de liaison --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-person-badge text-primary"></i> Agents de liaison
+                                </label>
+                                <textarea name="logistics_liaison_officers"
+                                          class="form-control @error('logistics_liaison_officers') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Contacts, responsabilités...">{{ old('logistics_liaison_officers', $meeting->logistics_liaison_officers) }}</textarea>
+                                @error('logistics_liaison_officers')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Sécurité --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-shield-check text-primary"></i> Sécurité
+                                </label>
+                                <textarea name="logistics_security"
+                                          class="form-control @error('logistics_security') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Dispositif de sécurité, accès...">{{ old('logistics_security', $meeting->logistics_security) }}</textarea>
+                                @error('logistics_security')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Santé / Dispositif médical --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-heart-pulse text-primary"></i> Santé / Dispositif médical
+                                </label>
+                                <textarea name="logistics_medical"
+                                          class="form-control @error('logistics_medical') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Premiers secours, contacts médicaux...">{{ old('logistics_medical', $meeting->logistics_medical) }}</textarea>
+                                @error('logistics_medical')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Protocole d'accueil --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-person-check text-primary"></i> Protocole d'accueil
+                                </label>
+                                <textarea name="logistics_protocol"
+                                          class="form-control @error('logistics_protocol') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Cérémonies, accueil VIP...">{{ old('logistics_protocol', $meeting->logistics_protocol) }}</textarea>
+                                @error('logistics_protocol')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Autres rubriques --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-three-dots text-primary"></i> Autres éléments
+                                </label>
+                                <textarea name="logistics_other"
+                                          class="form-control @error('logistics_other') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Autres éléments logistiques...">{{ old('logistics_other', $meeting->logistics_other) }}</textarea>
+                                @error('logistics_other')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Notes générales --}}
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-sticky text-primary"></i> Notes et observations générales
+                                </label>
+                                <textarea name="logistics_notes"
+                                          class="form-control @error('logistics_notes') is-invalid @enderror"
+                                          rows="4"
+                                          placeholder="Observations, points d'attention...">{{ old('logistics_notes', $meeting->logistics_notes) }}</textarea>
+                                @error('logistics_notes')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ONGLET 3: Comité d'organisation --}}
             <div class="tab-pane fade {{ $activeTab === 'committee' ? 'show active' : '' }}" id="committee" role="tabpanel">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">

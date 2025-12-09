@@ -46,7 +46,7 @@ class MeetingController extends Controller
         $meetingTypes = MeetingType::orderBy('sort_order')->orderBy('name')->get();
         $committees   = Committee::orderBy('sort_order')->orderBy('name')->get();
 
-        $meetings = Meeting::with(['type', 'committee', 'room', 'organizer', 'delegations' => function($q) {
+        $meetings = Meeting::with(['meetingType', 'committee', 'room', 'organizer', 'delegations' => function($q) {
                 $q->withCount('members');
             }])
             ->when($search, function ($q) use ($search) {
@@ -86,12 +86,8 @@ class MeetingController extends Controller
      */
     public function create()
     {
-        // Inclure le type actuel même s'il est inactif pour éviter qu'il n'apparaisse pas sélectionné
-        $meetingTypes = MeetingType::withTrashed()
-            ->where(function ($query) use ($meeting) {
-                $query->where('is_active', true)
-                      ->orWhere('id', $meeting->meeting_type_id);
-            })
+        // Récupérer uniquement les types actifs pour la création
+        $meetingTypes = MeetingType::where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -170,6 +166,20 @@ class MeetingController extends Controller
             'agenda'                  => $data['agenda'] ?? null,
             'organizer_id'            => Auth::id(),
             'reminder_minutes_before' => $data['reminder_minutes_before'] ?? 0,
+            // Champs logistiques
+            'logistics_transport'        => $data['logistics_transport'] ?? null,
+            'logistics_accommodation'    => $data['logistics_accommodation'] ?? null,
+            'logistics_catering'         => $data['logistics_catering'] ?? null,
+            'logistics_coffee_breaks'    => $data['logistics_coffee_breaks'] ?? null,
+            'logistics_room_setup'       => $data['logistics_room_setup'] ?? null,
+            'logistics_av_equipment'     => $data['logistics_av_equipment'] ?? null,
+            'logistics_interpreters'     => $data['logistics_interpreters'] ?? null,
+            'logistics_liaison_officers' => $data['logistics_liaison_officers'] ?? null,
+            'logistics_security'         => $data['logistics_security'] ?? null,
+            'logistics_medical'          => $data['logistics_medical'] ?? null,
+            'logistics_protocol'         => $data['logistics_protocol'] ?? null,
+            'logistics_other'            => $data['logistics_other'] ?? null,
+            'logistics_notes'            => $data['logistics_notes'] ?? null,
         ]);
 
         // EF20 - Gestion du comité d'organisation
@@ -249,7 +259,7 @@ class MeetingController extends Controller
     {
         // Chargement des relations de base
         $meeting->load([
-            'type',
+            'meetingType',
             'committee',
             'room',
             'organizer',
@@ -393,6 +403,20 @@ class MeetingController extends Controller
             'description'             => $data['description'] ?? null,
             'agenda'                  => $data['agenda'] ?? null,
             'reminder_minutes_before' => $data['reminder_minutes_before'] ?? $meeting->reminder_minutes_before,
+            // Champs logistiques
+            'logistics_transport'        => $data['logistics_transport'] ?? $meeting->logistics_transport,
+            'logistics_accommodation'    => $data['logistics_accommodation'] ?? $meeting->logistics_accommodation,
+            'logistics_catering'         => $data['logistics_catering'] ?? $meeting->logistics_catering,
+            'logistics_coffee_breaks'    => $data['logistics_coffee_breaks'] ?? $meeting->logistics_coffee_breaks,
+            'logistics_room_setup'       => $data['logistics_room_setup'] ?? $meeting->logistics_room_setup,
+            'logistics_av_equipment'     => $data['logistics_av_equipment'] ?? $meeting->logistics_av_equipment,
+            'logistics_interpreters'     => $data['logistics_interpreters'] ?? $meeting->logistics_interpreters,
+            'logistics_liaison_officers' => $data['logistics_liaison_officers'] ?? $meeting->logistics_liaison_officers,
+            'logistics_security'         => $data['logistics_security'] ?? $meeting->logistics_security,
+            'logistics_medical'          => $data['logistics_medical'] ?? $meeting->logistics_medical,
+            'logistics_protocol'         => $data['logistics_protocol'] ?? $meeting->logistics_protocol,
+            'logistics_other'            => $data['logistics_other'] ?? $meeting->logistics_other,
+            'logistics_notes'            => $data['logistics_notes'] ?? $meeting->logistics_notes,
         ]);
 
         // EF20 - Gestion du comité d'organisation
@@ -621,7 +645,7 @@ class MeetingController extends Controller
                 break;
         }
 
-        $meetings = Meeting::with(['type', 'committee', 'room'])
+        $meetings = Meeting::with(['meetingType', 'committee', 'room'])
             ->whereBetween('start_at', [$start, $end])
             ->orderBy('start_at')
             ->get();
@@ -643,7 +667,7 @@ class MeetingController extends Controller
         $this->authorize('view', $meeting);
 
         $meeting->load([
-            'type',
+            'meetingType',
             'committee',
             'room',
             'organizer',
@@ -676,7 +700,7 @@ class MeetingController extends Controller
     {
         $this->authorize('view', $meeting);
 
-        $meeting->load(['type', 'room', 'organizer']);
+        $meeting->load(['meetingType', 'room', 'organizer']);
 
         $pdf = Pdf::loadView('meetings.pdf-invitation', [
             'meeting' => $meeting,
@@ -696,7 +720,7 @@ class MeetingController extends Controller
         $this->authorize('view', $meeting);
 
         $meeting->load([
-            'type',
+            'meetingType',
             'room',
             'organizer',
             'delegations.members',
@@ -720,7 +744,7 @@ class MeetingController extends Controller
         $this->authorize('view', $meeting);
 
         $meeting->load([
-            'type',
+            'meetingType',
             'room',
             'organizer',
             'delegations.members',
@@ -745,7 +769,7 @@ class MeetingController extends Controller
         $this->authorize('view', $meeting);
 
         $meeting->load([
-            'type',
+            'meetingType',
             'room',
             'organizer',
             'termsOfReference',
@@ -769,7 +793,7 @@ class MeetingController extends Controller
         $this->authorize('view', $meeting);
 
         $meeting->load([
-            'type',
+            'meetingType',
             'room',
             'documents.type',
         ]);
@@ -791,28 +815,80 @@ class MeetingController extends Controller
         $this->authorize('update', $meeting);
 
         // Charger les délégations et leurs membres
-        $meeting->loadMissing(['delegations.members', 'type', 'room']);
+        $meeting->load(['delegations.members', 'meetingType', 'room']);
 
-        $recipients = collect();
+        // Vérifier s'il y a des délégations
+        if ($meeting->delegations->isEmpty()) {
+            return back()->with('error', 'Cette réunion n\'a aucune délégation associée. Veuillez d\'abord ajouter des délégations à cette réunion.');
+        }
+
+        $sentCount = 0;
+        $errorMessages = [];
+        $recipientsList = [];
         
         foreach ($meeting->delegations as $delegation) {
+            // Envoyer au chef de délégation (champ direct de la délégation)
+            if (!empty($delegation->head_of_delegation_email)) {
+                try {
+                    \Illuminate\Support\Facades\Notification::route('mail', [
+                        $delegation->head_of_delegation_email => $delegation->head_of_delegation_name ?? 'Chef de Délégation'
+                    ])->notify(new \App\Notifications\DelegationMeetingInvitationNotification($meeting, $delegation));
+                    $sentCount++;
+                    $recipientsList[] = $delegation->head_of_delegation_email;
+                } catch (\Exception $e) {
+                    $errorMessages[] = "Chef {$delegation->title}: " . $e->getMessage();
+                    \Log::error('Erreur envoi notification chef délégation', [
+                        'email' => $delegation->head_of_delegation_email,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // Envoyer à tous les membres de la délégation
             foreach ($delegation->members as $member) {
-                if ($member->email) {
-                    // Créer une notification pour les membres de délégation
-                    // Note: Implémenter une notification spécifique pour les membres de délégation
-                    $recipients->push((object)['email' => $member->email, 'name' => $member->full_name]);
+                if (!empty($member->email)) {
+                    try {
+                        \Illuminate\Support\Facades\Notification::route('mail', [
+                            $member->email => $member->full_name ?? $member->first_name
+                        ])->notify(new \App\Notifications\DelegationMeetingInvitationNotification($meeting, $delegation, $member));
+                        $sentCount++;
+                        $recipientsList[] = $member->email;
+                    } catch (\Exception $e) {
+                        $errorMessages[] = "{$member->email}: " . $e->getMessage();
+                        \Log::error('Erreur envoi notification membre', [
+                            'email' => $member->email,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
             }
         }
 
-        if ($recipients->isEmpty()) {
-            return back()->with('error', 'Aucun membre de délégation à notifier.');
+        // Construire le message de résultat
+        if ($sentCount === 0 && !empty($errorMessages)) {
+            // Toutes les tentatives ont échoué - afficher l'erreur SMTP
+            $firstError = $errorMessages[0] ?? 'Erreur inconnue';
+            return back()->with('error', 
+                "Échec d'envoi : {$firstError}<br><br>" .
+                "<small>Vérifiez votre configuration SMTP dans .env. Pour Gmail, vous devez utiliser un <strong>mot de passe d'application</strong> " .
+                "(pas votre mot de passe Gmail normal).</small>"
+            );
+        }
+        
+        if ($sentCount === 0) {
+            // Aucun destinataire trouvé
+            $delegationsCount = $meeting->delegations->count();
+            $totalMembers = $meeting->delegations->sum(fn($d) => $d->members->count());
+            return back()->with('error', "Aucun destinataire avec email. {$delegationsCount} délégation(s), {$totalMembers} membre(s).");
         }
 
-        // TODO: Implémenter l'envoi de notifications aux membres de délégation
-        // Notification::send($recipients, new MeetingInvitationNotification($meeting));
+        // Succès (partiel ou total)
+        $message = "✓ Convocations envoyées à <strong>{$sentCount}</strong> destinataire(s) : " . implode(', ', $recipientsList);
+        if (!empty($errorMessages)) {
+            $message .= "<br><small class='text-warning'>" . count($errorMessages) . " envoi(s) ont échoué.</small>";
+        }
 
-        return back()->with('success', 'Les convocations ont été envoyées aux délégations par email.');
+        return back()->with('success', $message);
     }
 
     /**
@@ -822,7 +898,7 @@ class MeetingController extends Controller
     protected function sendMeetingInvitations(Meeting $meeting): void
     {
         // Charger les délégations et leurs membres
-        $meeting->loadMissing(['delegations.members', 'type', 'room']);
+        $meeting->loadMissing(['delegations.members', 'meetingType', 'room']);
 
         // TODO: Implémenter l'envoi de notifications aux délégations
         // Les notifications doivent être envoyées aux chefs de délégation et/ou aux membres

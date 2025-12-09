@@ -44,4 +44,5 @@
 
 <span class="badge <?php echo e($statusInfo['class']); ?>"><?php echo e($statusInfo['label']); ?></span>
 
+
 <?php /**PATH C:\laragon\www\sgrs-alpha\resources\views/pdf/partials/status-badge.blade.php ENDPATH**/ ?>

@@ -25,10 +25,27 @@ return new class extends Migration
             });
         }
 
-        // Ajouter un index pour faciliter les requêtes de migration
+        // Marquer aussi la table participants comme obsolète
+        if (Schema::hasTable('participants')) {
+            Schema::table('participants', function (Blueprint $table) {
+                if (!Schema::hasColumn('participants', 'is_deprecated')) {
+                    $table->boolean('is_deprecated')->default(true);
+                    $table->text('deprecation_note')->nullable()->after('is_deprecated');
+                    $table->timestamp('deprecated_at')->nullable()->after('deprecation_note');
+                }
+            });
+        }
+
+        // Ajouter des index pour faciliter les requêtes de migration
         if (Schema::hasTable('participants_reunions')) {
             Schema::table('participants_reunions', function (Blueprint $table) {
                 $table->index(['meeting_id', 'is_deprecated']);
+            });
+        }
+
+        if (Schema::hasTable('participants')) {
+            Schema::table('participants', function (Blueprint $table) {
+                $table->index(['is_deprecated', 'deprecated_at']);
             });
         }
     }
@@ -46,8 +63,22 @@ return new class extends Migration
                 }
             });
         }
+
+        if (Schema::hasTable('participants')) {
+            Schema::table('participants', function (Blueprint $table) {
+                if (Schema::hasColumn('participants', 'is_deprecated')) {
+                    $table->dropIndex(['is_deprecated', 'deprecated_at']);
+                    $table->dropColumn(['is_deprecated', 'deprecation_note', 'deprecated_at']);
+                }
+            });
+        }
     }
 };
+
+
+
+
+
 
 
 

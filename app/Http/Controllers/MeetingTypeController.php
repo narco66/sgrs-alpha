@@ -9,6 +9,18 @@ use Illuminate\Http\Request;
 
 class MeetingTypeController extends Controller
 {
+    /**
+     * Instantiate a new controller instance.
+     */
+    public function __construct()
+    {
+        // Vérification des permissions via middleware
+        $this->middleware('permission:meeting_types.view')->only(['index', 'show']);
+        $this->middleware('permission:meeting_types.create')->only(['create', 'store']);
+        $this->middleware('permission:meeting_types.update')->only(['edit', 'update']);
+        $this->middleware('permission:meeting_types.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('q');

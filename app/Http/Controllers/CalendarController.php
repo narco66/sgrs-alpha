@@ -34,7 +34,7 @@ class CalendarController extends Controller
         $startDate = $baseDate->copy()->startOfDay();
         $endDate = $baseDate->copy()->endOfDay();
 
-        $meetings = Meeting::with(['type', 'committee', 'room'])
+        $meetings = Meeting::with(['meetingType', 'committee', 'room'])
             ->whereBetween('start_at', [$startDate, $endDate])
             ->orderBy('start_at')
             ->get();
@@ -62,7 +62,7 @@ class CalendarController extends Controller
         $startOfWeek = $baseDate->copy()->startOfWeek(Carbon::MONDAY);
         $endOfWeek = $baseDate->copy()->endOfWeek(Carbon::SUNDAY);
 
-        $meetings = Meeting::with(['type', 'committee', 'room'])
+        $meetings = Meeting::with(['meetingType', 'committee', 'room'])
             ->whereBetween('start_at', [$startOfWeek->startOfDay(), $endOfWeek->endOfDay()])
             ->orderBy('start_at')
             ->get();
@@ -102,7 +102,7 @@ class CalendarController extends Controller
         $endDate = $baseDate->copy()->endOfMonth();
 
         // Charger les réunions du mois + celles qui commencent avant mais se terminent dans le mois
-        $meetings = Meeting::with(['type', 'committee', 'room'])
+        $meetings = Meeting::with(['meetingType', 'committee', 'room'])
             ->where(function($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_at', [$startDate, $endDate])
                   ->orWhere(function($sub) use ($startDate, $endDate) {
@@ -143,7 +143,7 @@ class CalendarController extends Controller
         $startDate = Carbon::create($year, 1, 1)->startOfYear();
         $endDate = Carbon::create($year, 12, 31)->endOfYear();
 
-        $meetings = Meeting::with(['type', 'committee', 'room'])
+        $meetings = Meeting::with(['meetingType', 'committee', 'room'])
             ->whereBetween('start_at', [$startDate, $endDate])
             ->orderBy('start_at')
             ->get();

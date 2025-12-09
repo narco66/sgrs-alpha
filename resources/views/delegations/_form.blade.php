@@ -519,42 +519,19 @@
             cancelBtn.addEventListener('click', function(e) {
                 if (formModified && !confirm('Vous avez des modifications non enregistrées. Quitter quand même ?')) {
                     e.preventDefault();
-                return false;
-            }
-        };
+                    return false;
+                }
+            });
+        }
         
         // VALIDATION ET SOUMISSION DU FORMULAIRE
         const submitBtn = document.getElementById('submitBtn');
         
-        // Créer une référence nommée pour pouvoir retirer le listener
-        let submitHandlerReference = null;
-        
-        submitHandlerReference = function(e) {
-            console.log('🚀 Événement submit capturé');
-            
-            // Vérifier si on est déjà en train de soumettre (évite la boucle infinie)
-            if (form.getAttribute('data-submitting') === 'true') {
-                console.log('✅ Soumission déjà en cours, laisser passer...');
-                // Ne pas bloquer - laisser la soumission native se faire
-                return true;
-            }
-            
-            // Si déjà validé, laisser passer
-            if (form.getAttribute('data-validated') === 'true') {
-                console.log('✅ Formulaire déjà validé, soumission autorisée - NE PAS BLOQUER');
-                form.removeAttribute('data-validated');
-                form.setAttribute('data-submitting', 'true'); // Marquer comme en cours de soumission
-                // Ne pas appeler preventDefault() - laisser la soumission se faire naturellement
-                return true;
-            }
-            
-            // Bloquer pour validation
-            console.log('⏸️ Blocage de la soumission pour validation...');
+        form.addEventListener('submit', function(e) {
+            // Empêcher la soumission par défaut pour validation
             e.preventDefault();
-            e.stopPropagation();
             
             console.log('🔍 Validation du formulaire...');
-            showToast('<i class="bi bi-hourglass-split me-2"></i>Validation en cours...', 'success');
             
             let isValid = true;
             let errors = [];
@@ -564,10 +541,7 @@
             if (!title || !title.value.trim()) {
                 isValid = false;
                 errors.push('Le titre de la délégation est obligatoire');
-                if (title) {
-                    title.classList.add('is-invalid');
-                    title.focus();
-                }
+                if (title) title.classList.add('is-invalid');
             } else {
                 if (title) title.classList.remove('is-invalid');
             }
@@ -577,10 +551,7 @@
             if (!entityType || !entityType.value) {
                 isValid = false;
                 errors.push('Le type d\'entité est obligatoire');
-                if (entityType) {
-                    entityType.classList.add('is-invalid');
-                    if (isValid) entityType.focus();
-                }
+                if (entityType) entityType.classList.add('is-invalid');
             } else {
                 if (entityType) entityType.classList.remove('is-invalid');
                 
@@ -590,10 +561,7 @@
                     if (!countryInput || !countryInput.value.trim()) {
                         isValid = false;
                         errors.push('Le pays est obligatoire pour ce type d\'entité');
-                        if (countryInput && isValid) {
-                            countryInput.classList.add('is-invalid');
-                            countryInput.focus();
-                        }
+                        if (countryInput) countryInput.classList.add('is-invalid');
                     } else {
                         if (countryInput) countryInput.classList.remove('is-invalid');
                     }
@@ -601,10 +569,7 @@
                     if (!orgInput || !orgInput.value.trim()) {
                         isValid = false;
                         errors.push('Le nom de l\'organisation est obligatoire pour ce type d\'entité');
-                        if (orgInput && isValid) {
-                            orgInput.classList.add('is-invalid');
-                            orgInput.focus();
-                        }
+                        if (orgInput) orgInput.classList.add('is-invalid');
                     } else {
                         if (orgInput) orgInput.classList.remove('is-invalid');
                     }
@@ -616,15 +581,12 @@
             if (!meetingId || !meetingId.value) {
                 isValid = false;
                 errors.push('La réunion associée est obligatoire');
-                if (meetingId) {
-                    meetingId.classList.add('is-invalid');
-                    if (isValid) meetingId.focus();
-                }
+                if (meetingId) meetingId.classList.add('is-invalid');
             } else {
                 if (meetingId) meetingId.classList.remove('is-invalid');
             }
             
-            // Validation membres
+            // Validation membres (si présents)
             const memberRows = membersContainer.querySelectorAll('.member-item, .member-row');
             memberRows.forEach((row, index) => {
                 const firstName = row.querySelector('.member-first-name') || row.querySelector('input[name*="[first_name]"]');
@@ -637,6 +599,7 @@
                 const emVal = email ? email.value.trim() : '';
                 const roleVal = role ? role.value : '';
                 
+                // Valider seulement si au moins un champ est rempli
                 if (fnVal || lnVal || emVal) {
                     if (!fnVal) {
                         isValid = false;
@@ -668,39 +631,21 @@
                 }
             });
             
+            // Si erreurs, afficher et arrêter
             if (!isValid) {
                 const errorMsg = '<strong>Erreurs détectées :</strong><ul class="mb-0 mt-2"><li>' + errors.join('</li><li>') + '</li></ul>';
                 showToast(errorMsg, 'error');
                 
-                // Scroll vers la première erreur
                 const firstError = form.querySelector('.is-invalid');
                 if (firstError) {
                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     setTimeout(() => firstError.focus(), 500);
                 }
-                
                 return false;
             }
             
-            // Validation OK - Confirmation
-            const membersCount = memberRows.length;
-            const meetingText = meetingId ? meetingId.options[meetingId.selectedIndex].text : 'Non sélectionnée';
-            
-            let confirmMsg = '✓ Validation réussie !\n\n';
-            confirmMsg += 'Confirmer l\'enregistrement avec :\n\n';
-            confirmMsg += '📋 Titre : ' + (title ? title.value : '') + '\n';
-            confirmMsg += '🏛️ Type : ' + (entityType ? entityType.options[entityType.selectedIndex].text : '') + '\n';
-            confirmMsg += '📅 Réunion : ' + meetingText + '\n';
-            confirmMsg += '👥 Membres : ' + membersCount + (membersCount > 1 ? ' membres' : (membersCount === 1 ? ' membre' : ' aucun'));
-            confirmMsg += '\n\nCliquer sur OK pour enregistrer.';
-            
-            if (!confirm(confirmMsg)) {
-                showToast('ℹ️ Enregistrement annulé', 'success');
-                return false;
-            }
-            
-            // Confirmation reçue - SOUMETTRE
-            console.log('✅ Confirmation reçue, soumission...');
+            // Validation OK - Désactiver bouton et soumettre
+            console.log('✅ Validation réussie, soumission...');
             isSubmitting = true;
             formModified = false;
             
@@ -709,110 +654,14 @@
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement...';
             }
             
-            showToast('<i class="bi bi-cloud-upload me-2"></i>Envoi des données au serveur...', 'success');
-            
-            // Réactiver les champs si nécessaire AVANT la soumission
+            // Réactiver les champs désactivés pour qu'ils soient inclus dans la soumission
             form.querySelectorAll('input[disabled], select[disabled], textarea[disabled]').forEach(input => {
-                if (input.name !== '_token') {
-                    input.disabled = false;
-                }
+                input.disabled = false;
             });
             
-            // Vérifier que le token CSRF est présent
-            const csrfToken = form.querySelector('input[name="_token"]');
-            if (!csrfToken) {
-                showToast('❌ Erreur: Token de sécurité manquant. Veuillez rafraîchir la page.', 'error');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Enregistrer la délégation';
-                }
-                isSubmitting = false;
-                return false;
-            }
-            
-            console.log('📤 Préparation de la soumission...');
-            console.log('Action du formulaire:', form.action);
-            console.log('Méthode:', form.method);
-            console.log('CSRF Token présent:', !!csrfToken);
-            
-            // Marquer comme validé pour éviter la re-validation
-            form.setAttribute('data-validated', 'true');
-            
-            // Créer un événement submit natif et le déclencher
-            const submitEvent = new Event('submit', {
-                bubbles: true,
-                cancelable: true
-            });
-            
-            // Vérifier que tous les champs nécessaires sont présents
-            console.log('📋 Vérification finale des données...');
-            const formData = new FormData(form);
-            console.log('✅ Titre:', formData.get('title'));
-            console.log('✅ Type entité:', formData.get('entity_type'));
-            console.log('✅ Réunion ID:', formData.get('meeting_id'));
-            console.log('✅ Redirect to meeting:', formData.get('redirect_to_meeting'));
-            console.log('✅ CSRF Token:', formData.get('_token') ? 'Présent' : 'MANQUANT!');
-            
-            // CRITIQUE: Retirer le listener AVANT de soumettre pour éviter la boucle infinie
-            console.log('🔧 Retrait du listener submit pour éviter la boucle...');
-            if (submitHandlerReference) {
-                form.removeEventListener('submit', submitHandlerReference);
-                console.log('✅ Listener retiré avec succès');
-            }
-            
-            // Réactiver tous les champs désactivés
-            form.querySelectorAll('input[disabled], select[disabled], textarea[disabled]').forEach(input => {
-                if (input.name !== '_token') {
-                    input.disabled = false;
-                }
-            });
-            
-            // Réactiver le bouton (nécessaire pour requestSubmit)
-            if (submitBtn) {
-                submitBtn.disabled = false;
-            }
-            
-            // Marquer comme validé ET en cours de soumission AVANT la soumission
-            form.setAttribute('data-validated', 'true');
-            form.setAttribute('data-submitting', 'true');
-            console.log('✅ Formulaire marqué comme validé et en cours de soumission');
-            
-            // Retirer le listener MAINTENANT (après avoir marqué)
-            console.log('🔧 Retrait du listener submit...');
-            if (submitHandlerReference) {
-                form.removeEventListener('submit', submitHandlerReference);
-                console.log('✅ Listener retiré');
-            }
-            
-            // Utiliser requestSubmit() si disponible (la meilleure méthode moderne)
-            if (typeof HTMLFormElement.prototype.requestSubmit !== 'undefined') {
-                console.log('📤 Utilisation de requestSubmit()...');
-                try {
-                    // Soumettre immédiatement - le listener est retiré et le flag est activé
-                    form.requestSubmit(submitBtn);
-                    console.log('✅ requestSubmit() appelé - Navigation en cours...');
-                    // Ne rien faire après - laisser la navigation se faire
-                    return;
-                } catch (err) {
-                    console.error('❌ Erreur avec requestSubmit:', err);
-                    // En cas d'erreur, utiliser la soumission native
-                    setTimeout(() => {
-                        console.log('📤 Fallback: Soumission native...');
-                        form.submit();
-                    }, 100);
-                    return;
-                }
-            }
-            
-            // Fallback pour navigateurs anciens: soumettre directement
-            console.log('📤 Méthode fallback: Soumission directe...');
-            setTimeout(() => {
-                form.submit();
-            }, 100);
-        };
-        
-        // Ajouter le listener après avoir créé la fonction
-        form.addEventListener('submit', submitHandlerReference);
+            // Soumettre directement le formulaire (sans re-déclencher d'événement)
+            form.submit();
+        });
         
         // Afficher messages de session après chargement
         setTimeout(function() {

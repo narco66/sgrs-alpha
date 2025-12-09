@@ -90,7 +90,7 @@ class DashboardController extends Controller
         | RÉUNIONS RÉCENTES (avec pagination)
         |--------------------------------------------------------------------------
         */
-        $recentMeetings = Meeting::with(['room', 'type'])
+        $recentMeetings = Meeting::with(['room', 'meetingType'])
             ->whereNull('deleted_at')
             ->orderByDesc('created_at')
             ->paginate(5, ['*'], 'recent_page');
@@ -100,7 +100,7 @@ class DashboardController extends Controller
         | RÉUNIONS À VENIR (avec filtre : today / week / month)
         |--------------------------------------------------------------------------
         */
-        $upcomingMeetingsQuery = Meeting::with(['room', 'type'])
+        $upcomingMeetingsQuery = Meeting::with(['room', 'meetingType'])
             ->whereDate('start_at', '>=', $today)
             ->orderBy('start_at');
 

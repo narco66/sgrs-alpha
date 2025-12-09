@@ -11,9 +11,11 @@
         </div>
         <p class="text-muted mb-0 mt-1">Paramétrage des comités et groupes de travail liés aux réunions.</p>
     </div>
+    @can('create', App\Models\Committee::class)
     <a href="{{ route('committees.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle me-1"></i> Nouveau comité
     </a>
+    @endcan
 </div>
 
 <div class="card shadow-sm border-0 mb-3">
@@ -98,10 +100,13 @@
                             @endif
                         </td>
                         <td class="text-end">
+                            @can('update', $committee)
                             <a href="{{ route('committees.edit', $committee) }}"
                                class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            @endcan
+                            @can('delete', $committee)
                             <form action="{{ route('committees.destroy', $committee) }}"
                                   method="POST"
                                   class="d-inline"
@@ -112,6 +117,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            @endcan
                         </td>
                     </tr>
                 @empty

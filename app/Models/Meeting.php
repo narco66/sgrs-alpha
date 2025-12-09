@@ -38,6 +38,20 @@ class Meeting extends Model
         'agenda',
         'organizer_id',
         'reminder_minutes_before',
+        // Champs logistiques
+        'logistics_transport',
+        'logistics_accommodation',
+        'logistics_catering',
+        'logistics_coffee_breaks',
+        'logistics_room_setup',
+        'logistics_av_equipment',
+        'logistics_interpreters',
+        'logistics_liaison_officers',
+        'logistics_security',
+        'logistics_medical',
+        'logistics_protocol',
+        'logistics_other',
+        'logistics_notes',
     ];
 
     /**
@@ -76,7 +90,11 @@ class Meeting extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function type()
+    /**
+     * Type de réunion (relation vers MeetingType)
+     * Nommé meetingType() pour éviter le conflit avec le champ 'type' de la table
+     */
+    public function meetingType()
     {
         // Inclure les types archivés/supprimés pour afficher correctement l'historique
         return $this->belongsTo(MeetingType::class, 'meeting_type_id')->withTrashed();

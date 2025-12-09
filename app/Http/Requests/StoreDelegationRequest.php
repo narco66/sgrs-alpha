@@ -70,7 +70,7 @@ class StoreDelegationRequest extends FormRequest
             
             // Membres de la délégation (validation simplifiée - validation manuelle dans le contrôleur)
             'members'                   => ['nullable', 'array'],
-            'members.*.id'              => ['nullable', 'exists:membres_delegations,id'],
+            'members.*.id'              => ['nullable', 'exists:delegation_members,id'],
             'members.*.first_name'      => ['nullable', 'string', 'max:255'],
             'members.*.last_name'       => ['nullable', 'string', 'max:255'],
             'members.*.email'           => ['nullable', 'email', 'max:255'],

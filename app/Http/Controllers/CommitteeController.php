@@ -10,6 +10,18 @@ use Illuminate\Http\Request;
 
 class CommitteeController extends Controller
 {
+    /**
+     * Instantiate a new controller instance.
+     */
+    public function __construct()
+    {
+        // Vérification des permissions via middleware
+        $this->middleware('permission:committees.view')->only(['index', 'show']);
+        $this->middleware('permission:committees.create')->only(['create', 'store']);
+        $this->middleware('permission:committees.update')->only(['edit', 'update']);
+        $this->middleware('permission:committees.delete')->only(['destroy']);
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('q');

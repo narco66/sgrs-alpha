@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $hasMembers = $delegation->members && $delegation->members->count() > 0;
+    $hasHeadOfDelegation = !empty($delegation->head_of_delegation_name);
+    $canGenerateBadges = $hasMembers || $hasHeadOfDelegation;
+@endphp
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1">{{ $delegation->title }}</h4>
@@ -37,12 +43,12 @@
                         <i class="bi bi-file-text me-2"></i> Fiche de la délégation
                     </a>
                 </li>
-                @if($delegation->members && $delegation->members->count() > 0)
+                @if($canGenerateBadges)
                 <li><hr class="dropdown-divider"></li>
                 <li><h6 class="dropdown-header">Badges participants</h6></li>
                 <li>
                     <a class="dropdown-item" href="{{ route('delegations.badges', $delegation) }}">
-                        <i class="bi bi-person-badge me-2"></i> Tous les badges
+                        <i class="bi bi-person-badge me-2"></i> Tous les badges ({{ $hasMembers ? $delegation->members->count() : 0 }}{{ $hasHeadOfDelegation ? ' + Chef' : '' }})
                     </a>
                 </li>
                 @endif
@@ -132,55 +138,128 @@
     </div>
 
     <div class="col-md-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Utilisateurs</h5>
+        {{-- Chef de Délégation --}}
+        @if($hasHeadOfDelegation)
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-header bg-danger-subtle">
+                <h5 class="mb-0 text-danger-emphasis">
+                    <i class="bi bi-person-fill me-1"></i> Chef de Délégation
+                </h5>
             </div>
             <div class="card-body">
-                <p class="mb-2">
-                    <strong>{{ $delegation->users->count() }}</strong> utilisateur(s) associé(s)
-                </p>
-                @if($delegation->users->count() > 0)
-                    <ul class="list-unstyled mb-0">
-                        @foreach($delegation->users as $user)
-                            <li class="mb-2">
-                                <a href="{{ route('users.show', $user) }}" class="text-decoration-none">
-                                    {{ $user->name }}
+                <div class="d-flex align-items-center">
+                    <div class="bg-danger-subtle rounded-circle p-2 me-3">
+                        <i class="bi bi-person-badge fs-4 text-danger"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ $delegation->head_of_delegation_name }}</h6>
+                        @if($delegation->head_of_delegation_position)
+                            <small class="text-muted">{{ $delegation->head_of_delegation_position }}</small>
+                        @endif
+                        @if($delegation->head_of_delegation_email)
+                            <div class="small">
+                                <a href="mailto:{{ $delegation->head_of_delegation_email }}">
+                                    {{ $delegation->head_of_delegation_email }}
                                 </a>
-                                @if($user->email)
-                                    <div class="small text-muted">{{ $user->email }}</div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-muted small mb-0">Aucun utilisateur associé</p>
-                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="card shadow-sm border-0 mt-3">
-            <div class="card-header bg-white">
-                <h5 class="mb-0">Participants de la délégation</h5>
+        @endif
+
+        {{-- Membres de la délégation --}}
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-1"></i> Membres de la délégation
+                </h5>
+                @can('update', $delegation)
+                <a href="{{ route('delegations.members.create', $delegation) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus"></i> Ajouter
+                </a>
+                @endcan
             </div>
             <div class="card-body">
-                <p class="mb-2">
-                    <strong>{{ $delegation->participants->count() }}</strong> participant(s) associés
-                </p>
-                @if($delegation->participants->count() > 0)
-                    <ul class="list-unstyled mb-0">
-                        @foreach($delegation->participants as $user)
-                            <li class="mb-2">
-                                <a href="{{ route('users.show', $user) }}" class="text-decoration-none">
-                                    {{ $user->name }}
-                                </a>
-                                @if($user->email)
-                                    <div class="small text-muted">{{ $user->email }}</div>
-                                @endif
-                            </li>
+                @if($hasMembers)
+                    <p class="mb-3">
+                        <strong>{{ $delegation->members->count() }}</strong> membre(s) enregistré(s)
+                    </p>
+                    <div class="list-group list-group-flush">
+                        @foreach($delegation->members->sortBy(function($m) { return $m->role === 'head' ? 0 : 1; }) as $member)
+                            <div class="list-group-item px-0 d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{ $member->full_name }}
+                                        @if($member->role === 'head')
+                                            <span class="badge bg-danger-subtle text-danger-emphasis ms-1">Chef</span>
+                                        @endif
+                                    </div>
+                                    @if($member->position)
+                                        <small class="text-muted d-block">{{ $member->position }}</small>
+                                    @endif
+                                    @if($member->email)
+                                        <small class="text-muted">{{ $member->email }}</small>
+                                    @endif
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('delegations.members.badge', [$delegation, $member]) }}">
+                                                <i class="bi bi-person-badge me-2"></i> Badge PDF
+                                            </a>
+                                        </li>
+                                        @can('update', $delegation)
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('delegations.members.edit', [$delegation, $member]) }}">
+                                                <i class="bi bi-pencil me-2"></i> Modifier
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="{{ route('delegations.members.destroy', [$delegation, $member]) }}" method="POST" onsubmit="return confirm('Supprimer ce membre ?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i> Supprimer
+                                                </button>
+                                            </form>
+                                        </li>
+                                        @endcan
+                                    </ul>
+                                </div>
+                            </div>
                         @endforeach
-                    </ul>
+                    </div>
+                    
+                    @if($canGenerateBadges)
+                    <div class="mt-3 pt-3 border-top">
+                        <a href="{{ route('delegations.badges', $delegation) }}" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="bi bi-person-badge me-1"></i> Générer tous les badges PDF
+                        </a>
+                    </div>
+                    @endif
                 @else
-                    <p class="text-muted small mb-0">Aucun participant associé</p>
+                    <p class="text-muted mb-0">
+                        Aucun membre enregistré.
+                        @can('update', $delegation)
+                        <a href="{{ route('delegations.members.create', $delegation) }}">Ajouter un membre</a>
+                        @endcan
+                    </p>
+                    @if($hasHeadOfDelegation)
+                    <div class="mt-3 pt-3 border-top">
+                        <p class="small text-muted mb-2">
+                            <i class="bi bi-info-circle"></i> Le Chef de Délégation peut générer un badge.
+                        </p>
+                        <a href="{{ route('delegations.badges', $delegation) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-person-badge me-1"></i> Badge du Chef de Délégation
+                        </a>
+                    </div>
+                    @endif
                 @endif
             </div>
         </div>

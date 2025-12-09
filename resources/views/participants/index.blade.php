@@ -11,18 +11,16 @@
     </ol>
 </nav>
 
-{{-- En-tête de page --}}
+{{-- En-tete de page --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h3 class="page-title mb-1">Participants</h3>
         <p class="text-muted mb-0 small">Accueil / Participants</p>
     </div>
-    @can('create', \App\Models\Participant::class)
-        <a href="{{ route('participants.create') }}" class="btn btn-modern btn-modern-primary">
-            <i class="bi bi-person-plus"></i>
-            Nouveau participant
-        </a>
-    @endcan
+    <a href="{{ route('meetings.index') }}" class="btn btn-modern btn-modern-secondary">
+        <i class="bi bi-calendar3"></i>
+        Gérer les participants par réunion
+    </a>
 </div>
 
 @if(session('success'))
@@ -43,7 +41,7 @@
         <form method="GET" action="{{ route('participants.index') }}" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label">Recherche</label>
-                <input type="text" name="q" class="form-control" value="{{ $search ?? '' }}" placeholder="Nom, email, institution">
+                <input type="text" name="q" class="form-control" value="{{ $search ?? '' }}" placeholder="Nom, email, service">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Réunion</label>
@@ -56,7 +54,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label">Statut</label>
                 <select name="status" class="form-select">
                     <option value="all" @selected(($status ?? 'all') === 'all')>Tous</option>
@@ -64,15 +62,7 @@
                     <option value="inactive" @selected(($status ?? '') === 'inactive')>Inactifs</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Type</label>
-                <select name="type" class="form-select">
-                    <option value="all" @selected(($type ?? 'all') === 'all')>Tous</option>
-                    <option value="internal" @selected(($type ?? '') === 'internal')>Interne</option>
-                    <option value="external" @selected(($type ?? '') === 'external')>Externe</option>
-                </select>
-            </div>
-            <div class="col-md-1 d-flex gap-2">
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-modern btn-modern-primary w-100" title="Appliquer les filtres">
                     <i class="bi bi-search"></i>
                 </button>
@@ -99,10 +89,9 @@
             <table class="table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Nom</th>
-                        <th>Institution</th>
-                        <th>Pays</th>
-                        <th>Type</th>
+                        <th>Participant</th>
+                        <th>Email</th>
+                        <th>Service</th>
                         <th>Statut</th>
                         <th>Réunions</th>
                         <th class="text-end">Actions</th>
@@ -110,17 +99,14 @@
                 </thead>
                 <tbody>
                 @forelse($participants as $participant)
+                    @php
+                        $displayName = $participant->name
+                            ?: trim(($participant->first_name ?? '') . ' ' . ($participant->last_name ?? ''));
+                    @endphp
                     <tr>
-                        <td class="fw-semibold">{{ $participant->full_name }}</td>
-                        <td>{{ $participant->institution ?? '—' }}</td>
-                        <td>{{ $participant->country ?? '—' }}</td>
-                        <td>
-                            @if($participant->is_internal)
-                                <span class="badge-modern badge-modern-primary">Interne</span>
-                            @else
-                                <span class="badge-modern badge-modern-info">Externe</span>
-                            @endif
-                        </td>
+                        <td class="fw-semibold">{{ $displayName ?: 'Utilisateur' }}</td>
+                        <td>{{ $participant->email ?? 'N/A' }}</td>
+                        <td>{{ $participant->service ?? 'Non renseigné' }}</td>
                         <td>
                             @if($participant->is_active)
                                 <span class="badge-modern badge-modern-success">Actif</span>
@@ -130,39 +116,35 @@
                         </td>
                         <td>
                             <span class="badge bg-light text-dark">{{ $participant->meetings_count ?? 0 }}</span>
+                            @if(($participant->meetingParticipations ?? null)?->isNotEmpty())
+                                <div class="small text-muted mt-1">
+                                    @foreach(($participant->meetingParticipations->take(3) ?? []) as $mp)
+                                        <div>- {{ $mp->meeting?->title ?? 'Réunion' }} ({{ $mp->meeting?->start_at?->format('d/m') }})</div>
+                                    @endforeach
+                                    @if(($participant->meetingParticipations->count() ?? 0) > 3)
+                                        <div class="text-muted">+ {{ $participant->meetingParticipations->count() - 3 }} autres...</div>
+                                    @endif
+                                </div>
+                            @endif
                         </td>
                         <td class="text-end">
                             <div class="table-actions">
-                                <a href="{{ route('participants.show', $participant) }}"
+                                <a href="{{ route('users.show', $participant) }}"
                                    class="btn btn-sm btn-outline-secondary"
                                    data-bs-toggle="tooltip"
-                                   title="Voir les détails">
-                                    <i class="bi bi-eye"></i>
+                                   title="Voir la fiche utilisateur">
+                                    <i class="bi bi-person"></i>
                                 </a>
-                                <a href="{{ route('participants.edit', $participant) }}"
-                                   class="btn btn-sm btn-outline-primary"
-                                   data-bs-toggle="tooltip"
-                                   title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form action="{{ route('participants.destroy', $participant) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('Confirmez-vous la suppression de ce participant ?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Supprimer">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="6" class="text-center py-5">
                             <div class="empty-state">
                                 <i class="bi bi-inbox empty-state-icon"></i>
                                 <div class="empty-state-title">Aucun participant</div>
-                                <div class="empty-state-text">Aucun participant enregistré pour le moment.</div>
+                                <div class="empty-state-text">Aucun participant relié à une réunion pour le moment.</div>
                                 <a href="{{ route('participants.index') }}" class="btn btn-modern btn-modern-secondary mt-3">Réinitialiser les filtres</a>
                             </div>
                         </td>
@@ -175,7 +157,7 @@
         @if($participants->hasPages())
             <div class="modern-card-footer">
                 <div class="small text-muted">
-                    Affichage de {{ $participants->firstItem() }} à {{ $participants->lastItem() }} 
+                    Affichage de {{ $participants->firstItem() }} à {{ $participants->lastItem() }}
                     sur {{ $participants->total() }} participant{{ $participants->total() > 1 ? 's' : '' }}
                 </div>
                 <div class="pagination-modern">

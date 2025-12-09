@@ -43,6 +43,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link <?php echo e($activeTab === 'logistics' ? 'active' : ''); ?>" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button" role="tab">
+                    <i class="bi bi-truck"></i> Note logistique
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link <?php echo e($activeTab === 'committee' ? 'active' : ''); ?>" id="committee-tab" data-bs-toggle="tab" data-bs-target="#committee" type="button" role="tab">
                     <i class="bi bi-people"></i> Comité d'organisation
                 </button>
@@ -391,6 +396,386 @@ unset($__errorArgs, $__bag); ?>
                                         </option>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="tab-pane fade <?php echo e($activeTab === 'logistics' ? 'show active' : ''); ?>" id="logistics" role="tabpanel">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">
+                            <i class="bi bi-truck text-primary"></i> Éléments de la note logistique
+                        </h5>
+                        <p class="text-muted mb-4">
+                            Renseignez les informations logistiques de la réunion. Ces données seront utilisées pour générer la note logistique officielle.
+                        </p>
+
+                        <div class="row g-4">
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-airplane text-primary"></i> Transport des délégations
+                                </label>
+                                <textarea name="logistics_transport"
+                                          class="form-control <?php $__errorArgs = ['logistics_transport'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Moyens de transport, navettes, contacts..."><?php echo e(old('logistics_transport', $meeting->logistics_transport)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_transport'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-building text-primary"></i> Hébergement
+                                </label>
+                                <textarea name="logistics_accommodation"
+                                          class="form-control <?php $__errorArgs = ['logistics_accommodation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Hôtels, réservations, contacts..."><?php echo e(old('logistics_accommodation', $meeting->logistics_accommodation)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_accommodation'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-cup-hot text-primary"></i> Restauration
+                                </label>
+                                <textarea name="logistics_catering"
+                                          class="form-control <?php $__errorArgs = ['logistics_catering'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Repas officiels, traiteurs, menus..."><?php echo e(old('logistics_catering', $meeting->logistics_catering)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_catering'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-cup text-primary"></i> Pauses café
+                                </label>
+                                <textarea name="logistics_coffee_breaks"
+                                          class="form-control <?php $__errorArgs = ['logistics_coffee_breaks'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Organisation des pauses café..."><?php echo e(old('logistics_coffee_breaks', $meeting->logistics_coffee_breaks)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_coffee_breaks'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-layout-text-window text-primary"></i> Disposition de la salle
+                                </label>
+                                <textarea name="logistics_room_setup"
+                                          class="form-control <?php $__errorArgs = ['logistics_room_setup'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Configuration, plan de salle, agencement..."><?php echo e(old('logistics_room_setup', $meeting->logistics_room_setup)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_room_setup'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-display text-primary"></i> Matériel audio/visuel
+                                </label>
+                                <textarea name="logistics_av_equipment"
+                                          class="form-control <?php $__errorArgs = ['logistics_av_equipment'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Équipements, besoins techniques..."><?php echo e(old('logistics_av_equipment', $meeting->logistics_av_equipment)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_av_equipment'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-translate text-primary"></i> Interprètes
+                                </label>
+                                <textarea name="logistics_interpreters"
+                                          class="form-control <?php $__errorArgs = ['logistics_interpreters'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Langues, effectifs, cabines..."><?php echo e(old('logistics_interpreters', $meeting->logistics_interpreters)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_interpreters'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-person-badge text-primary"></i> Agents de liaison
+                                </label>
+                                <textarea name="logistics_liaison_officers"
+                                          class="form-control <?php $__errorArgs = ['logistics_liaison_officers'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Contacts, responsabilités..."><?php echo e(old('logistics_liaison_officers', $meeting->logistics_liaison_officers)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_liaison_officers'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-shield-check text-primary"></i> Sécurité
+                                </label>
+                                <textarea name="logistics_security"
+                                          class="form-control <?php $__errorArgs = ['logistics_security'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Dispositif de sécurité, accès..."><?php echo e(old('logistics_security', $meeting->logistics_security)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_security'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-heart-pulse text-primary"></i> Santé / Dispositif médical
+                                </label>
+                                <textarea name="logistics_medical"
+                                          class="form-control <?php $__errorArgs = ['logistics_medical'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Premiers secours, contacts médicaux..."><?php echo e(old('logistics_medical', $meeting->logistics_medical)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_medical'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-person-check text-primary"></i> Protocole d'accueil
+                                </label>
+                                <textarea name="logistics_protocol"
+                                          class="form-control <?php $__errorArgs = ['logistics_protocol'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Cérémonies, accueil VIP..."><?php echo e(old('logistics_protocol', $meeting->logistics_protocol)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_protocol'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-three-dots text-primary"></i> Autres éléments
+                                </label>
+                                <textarea name="logistics_other"
+                                          class="form-control <?php $__errorArgs = ['logistics_other'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Autres éléments logistiques..."><?php echo e(old('logistics_other', $meeting->logistics_other)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_other'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">
+                                    <i class="bi bi-sticky text-primary"></i> Notes et observations générales
+                                </label>
+                                <textarea name="logistics_notes"
+                                          class="form-control <?php $__errorArgs = ['logistics_notes'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                          rows="4"
+                                          placeholder="Observations, points d'attention..."><?php echo e(old('logistics_notes', $meeting->logistics_notes)); ?></textarea>
+                                <?php $__errorArgs = ['logistics_notes'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                             </div>
                         </div>
                     </div>

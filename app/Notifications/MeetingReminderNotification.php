@@ -32,7 +32,7 @@ class MeetingReminderNotification extends Notification implements ShouldQueue
             ->greeting('Bonjour ' . ($notifiable->name ?? ''))
             ->line('Ceci est un rappel de réunion statutaire de la CEEAC.')
             ->line('Titre : ' . $meeting->title)
-            ->line('Type : ' . ($meeting->type?->name ?? 'Non renseigné'))
+            ->line('Type : ' . ($meeting->meetingType?->name ?? 'Non renseigné'))
             ->line('Date : ' . $meeting->start_at?->format('d/m/Y'))
             ->line('Heure : ' . $meeting->start_at?->format('H:i'))
             ->line('Salle : ' . ($meeting->room?->name ?? 'Non attribuée'))
@@ -46,7 +46,7 @@ class MeetingReminderNotification extends Notification implements ShouldQueue
             'meeting_id'   => $this->meeting->id,
             'title'        => $this->meeting->title,
             'start_at'     => $this->meeting->start_at,
-            'meeting_type' => $this->meeting->type?->name,
+            'meeting_type' => $this->meeting->meetingType?->name,
             'room'         => $this->meeting->room?->name,
         ];
     }
