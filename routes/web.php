@@ -20,10 +20,15 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportingController;
 
 
-// Page d'accueil / tableau de bord SGRS-CEEAC
+// Page d'accueil publique (landing page SaaS SGRS-CEEAC)
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
+// Espace applicatif authentifié SGRS-CEEAC
 Route::middleware(['auth', 'verified'])
     ->group(function () {
-        Route::get('/', [DashboardController::class, 'index'])
+        Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
         // Les routes suivantes existent ou existeront dans les phases ultérieures :

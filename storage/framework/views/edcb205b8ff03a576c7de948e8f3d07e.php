@@ -1,17 +1,17 @@
-@extends('layouts.app')
 
-@section('title', 'SGRS-CEEAC – Système de Gestion des Réunions Statutaires')
 
-@section('content')
-{{-- HERO / EN-TÊTE PRINCIPAL --}}
+<?php $__env->startSection('title', 'SGRS-CEEAC – Système de Gestion des Réunions Statutaires'); ?>
+
+<?php $__env->startSection('content'); ?>
+
 <section class="py-4 py-md-5">
     <div class="row align-items-center g-4">
-        {{-- Colonne texte --}}
+        
         <div class="col-lg-7">
-            {{-- Navbar locale de la landing --}}
+            
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="d-flex align-items-center gap-2">
-                    <img src="{{ asset('images/logo-ceeac.png') }}"
+                    <img src="<?php echo e(asset('images/logo-ceeac.png')); ?>"
                          alt="CEEAC"
                          width="40"
                          height="40"
@@ -22,29 +22,29 @@
                     </div>
                 </div>
                 <nav class="d-flex align-items-center gap-2">
-                    <a href="{{ route('home') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="<?php echo e(route('home')); ?>" class="btn btn-sm btn-outline-secondary">
                         Accueil
                     </a>
-                    @if (Route::has('login'))
-                        @auth
-                            <a href="{{ route('dashboard') }}" class="btn btn-sm btn-primary">
+                    <?php if(Route::has('login')): ?>
+                        <?php if(auth()->guard()->check()): ?>
+                            <a href="<?php echo e(route('dashboard')); ?>" class="btn btn-sm btn-primary">
                                 Accéder à l’application
                             </a>
-                        @else
-                            <a href="{{ route('login') }}" class="btn btn-sm btn-outline-primary">
+                        <?php else: ?>
+                            <a href="<?php echo e(route('login')); ?>" class="btn btn-sm btn-outline-primary">
                                 Se connecter
                             </a>
-                            @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="btn btn-sm btn-outline-secondary d-none d-md-inline-flex">
+                            <?php if(Route::has('register')): ?>
+                                <a href="<?php echo e(route('register')); ?>" class="btn btn-sm btn-outline-secondary d-none d-md-inline-flex">
                                     S’inscrire
                                 </a>
-                            @endif
-                        @endauth
-                    @endif
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </nav>
             </div>
 
-            {{-- Titre + sous-titre --}}
+            
             <h1 class="display-5 fw-bold text-dark mb-3">
                 SGRS‑CEEAC – Système de Gestion des Réunions Statutaires
             </h1>
@@ -54,28 +54,28 @@
                 et une meilleure coordination institutionnelle.
             </p>
 
-            {{-- CTA principaux --}}
+            
             <div class="d-flex flex-wrap gap-3 mb-4">
-                @if (Route::has('login'))
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="btn btn-modern btn-modern-primary btn-lg">
+                <?php if(Route::has('login')): ?>
+                    <?php if(auth()->guard()->check()): ?>
+                        <a href="<?php echo e(route('dashboard')); ?>" class="btn btn-modern btn-modern-primary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-1"></i>
                             Accéder à l’application
                         </a>
-                    @else
-                        <a href="{{ route('login') }}" class="btn btn-modern btn-modern-primary btn-lg">
+                    <?php else: ?>
+                        <a href="<?php echo e(route('login')); ?>" class="btn btn-modern btn-modern-primary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-1"></i>
                             Se connecter
                         </a>
-                    @endauth
-                @endif
+                    <?php endif; ?>
+                <?php endif; ?>
                 <a href="#features" class="btn btn-modern btn-modern-secondary btn-lg">
                     <i class="bi bi-play-circle me-1"></i>
                     Découvrir l’application
                 </a>
             </div>
 
-            {{-- Points clés --}}
+            
             <div class="row g-3">
                 <div class="col-md-4">
                     <div class="small text-muted text-uppercase fw-semibold mb-1">Digitalisation</div>
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        {{-- Colonne illustration --}}
+        
         <div class="col-lg-5">
             <div class="modern-card h-100">
                 <div class="modern-card-body">
@@ -165,7 +165,7 @@
     </div>
 </section>
 
-{{-- SECTION À PROPOS --}}
+
 <section id="about" class="my-4 my-md-5">
     <div class="modern-card">
         <div class="modern-card-body">
@@ -218,7 +218,7 @@
     </div>
 </section>
 
-{{-- SECTION FONCTIONNALITÉS CLÉS --}}
+
 <section id="features" class="my-4 my-md-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -323,7 +323,7 @@
     </div>
 </section>
 
-{{-- SECTION BÉNÉFICES --}}
+
 <section id="benefits" class="my-4 my-md-5">
     <div class="row g-4">
         <div class="col-md-5">
@@ -385,7 +385,7 @@
     </div>
 </section>
 
-{{-- SECTION POUR QUI ? --}}
+
 <section id="audience" class="my-4 my-md-5">
     <div class="modern-card">
         <div class="modern-card-body">
@@ -454,7 +454,7 @@
     </div>
 </section>
 
-{{-- SECTION APPEL À L’ACTION FINAL --}}
+
 <section id="cta-final" class="my-4 my-md-5">
     <div class="modern-card bg-primary-subtle">
         <div class="modern-card-body d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
@@ -468,12 +468,12 @@
                 </p>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                @if (Route::has('login'))
-                    <a href="{{ route('login') }}" class="btn btn-modern btn-modern-primary">
+                <?php if(Route::has('login')): ?>
+                    <a href="<?php echo e(route('login')); ?>" class="btn btn-modern btn-modern-primary">
                         <i class="bi bi-box-arrow-in-right me-1"></i>
                         Se connecter
                     </a>
-                @endif
+                <?php endif; ?>
                 <a href="mailto:dsi@ceeac.int" class="btn btn-modern btn-modern-secondary">
                     <i class="bi bi-envelope me-1"></i>
                     Contacter la DSI / Support
@@ -483,20 +483,22 @@
     </div>
 </section>
 
-{{-- PIED DE PAGE PUBLIC --}}
+
 <footer class="mt-4 pt-4 border-top small text-muted">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
         <div>
             Commission de la CEEAC &mdash; Direction des Systèmes d’Information
         </div>
         <div class="d-flex flex-wrap gap-3">
-            <span>&copy; {{ date('Y') }} SGRS‑CEEAC</span>
-            {{-- Liens de base, à spécialiser si des pages dédiées existent --}}
+            <span>&copy; <?php echo e(date('Y')); ?> SGRS‑CEEAC</span>
+            
             <a href="#" class="text-decoration-none text-muted">Mentions légales</a>
             <a href="#" class="text-decoration-none text-muted">Politique de confidentialité</a>
         </div>
     </div>
 </footer>
-@endsection
+<?php $__env->stopSection(); ?>
 
 
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\sgrs-alpha\resources\views/welcome.blade.php ENDPATH**/ ?>
