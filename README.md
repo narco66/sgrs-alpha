@@ -1,67 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# README.md — SGRS-ALPHA
+_Système de Gestion des Réunions Statutaires de la Commission de la CEEAC_
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Repository : https://github.com/narco66/sgrs-alpha.git
 
-## About Laravel
+## 📛 Badges du Projet
+![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white)
+![Laravel](https://img.shields.io/badge/Laravel-11-red?logo=laravel)
+![MySQL](https://img.shields.io/badge/Database-MySQL-blue?logo=mysql)
+![GitHub](https://img.shields.io/badge/Status-Actif-success)
+![Maintenance](https://img.shields.io/badge/Maintenu-Oui-brightgreen)
+![Contributions](https://img.shields.io/badge/Contributions-Interne-orange)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🧭 TABLE DES MATIÈRES
+1. Présentation du Projet
+2. Technologies et Architecture
+3. Installation et Déploiement
+4. Mise à jour du Projet
+5. Gestion des rôles et permissions
+6. Tableau de bord et Fonctionnalités
+7. Documentation
+8. Tests automatisés
+9. Support et Assistance
+10. Contribution interne
+11. Licence et Confidentialité
+12. FAQ
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📘 Présentation du Projet
+SGRS-ALPHA est une application institutionnelle développée sous Laravel 11, destinée à organiser, gérer et suivre l’ensemble des réunions statutaires de la Commission de la CEEAC.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## ⚙ Technologies et Architecture
+- Laravel 11 (PHP 8.2+)
+- MySQL / MariaDB
+- Blade Templates + Bootstrap 5
+- Spatie Laravel-Permission
+- Chart.js / ApexCharts
+- Vite + Node.js
 
-## Learning Laravel
+## 📦 Installation et Déploiement
+### 1. Prérequis
+- PHP 8.2+
+- Composer 2.x
+- MySQL 8+
+- Node.js 18+
+- Git
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 2. Cloner le dépôt
+```
+git clone https://github.com/narco66/sgrs-alpha.git
+cd sgrs-alpha
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 3. Installer les dépendances
+```
+composer install
+npm install
+npm run build
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 4. Préparation de l’environnement
+```
+cp .env.example .env
+php artisan key:generate
+```
 
-## Laravel Sponsors
+Configurer la base de données dans `.env`.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 5. Migration & seeders
+```
+php artisan migrate
+php artisan db:seed
+```
 
-### Premium Partners
+### 6. Créer le lien de stockage
+```
+php artisan storage:link
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+### 7. Lancer l’application
+```
+php artisan serve
+```
 
-## Contributing
+## 📄 Mise à jour du Projet
+```
+git pull
+composer install
+npm install
+npm run build
+php artisan migrate
+php artisan optimize:clear
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🔐 Gestion des rôles et permissions
+SGRS-ALPHA utilise Spatie Laravel-Permission.
 
-## Code of Conduct
+## 📊 Tableau de bord – Fonctionnalités
+Statistiques, graphiques, notifications, résumé des réunions.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📚 Documentation
+La documentation complète est disponible dans `/docs`.
 
-## Security Vulnerabilities
+## 🧪 Tests automatisés
+```
+php artisan test
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 📬 Support et Assistance
+Direction des Systèmes d’Information – Commission de la CEEAC.
 
-## License
+## 🤝 Contribution interne
+Workflow interne basé sur branches et Pull Requests.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-"# sgrs-alpha" 
+## 📜 Licence et Confidentialité
+Projet interne de la CEEAC — diffusion interdite sans autorisation.
+
+## ❓ FAQ
+Inclut : problèmes PDF, migrations, permissions, mises à jour, etc.
