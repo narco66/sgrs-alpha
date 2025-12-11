@@ -10,9 +10,7 @@ class RoleAndPermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        // ------------------------------
-        // 1. Définition des permissions
-        // ------------------------------
+        // 1. Definition des permissions
         $permissions = [
             // Dashboard
             'dashboard.view',
@@ -23,19 +21,19 @@ class RoleAndPermissionSeeder extends Seeder
             'meetings.update',
             'meetings.delete',
 
-            // Types de réunions
+            // Types de reunions
             'meeting_types.view',
             'meeting_types.create',
             'meeting_types.update',
             'meeting_types.delete',
 
-            // Comités
+            // Comites
             'committees.view',
             'committees.create',
             'committees.update',
             'committees.delete',
 
-            // Délégations
+            // Delegations
             'delegations.view',
             'delegations.create',
             'delegations.update',
@@ -47,7 +45,7 @@ class RoleAndPermissionSeeder extends Seeder
             'rooms.update',
             'rooms.delete',
 
-            // Documents (module déjà prévu dans le cahier des charges)
+            // Documents
             'documents.view',
             'documents.create',
             'documents.update',
@@ -61,18 +59,6 @@ class RoleAndPermissionSeeder extends Seeder
             'document_types.update',
             'document_types.delete',
             'document_types.manage',
-            
-            // Participants
-            'participants.view',
-            'participants.create',
-            'participants.update',
-            'participants.delete',
-
-            // Délégations
-            'delegations.view',
-            'delegations.create',
-            'delegations.update',
-            'delegations.delete',
 
             // Calendrier
             'calendar.view',
@@ -81,7 +67,7 @@ class RoleAndPermissionSeeder extends Seeder
             'notifications.view',
             'notifications.manage',
 
-            // Utilisateurs / Rôles
+            // Utilisateurs / Roles
             'users.view',
             'users.create',
             'users.update',
@@ -101,27 +87,34 @@ class RoleAndPermissionSeeder extends Seeder
             // Audit
             'audit_logs.view',
 
-            // Matrice RACI (personnel interne uniquement)
+            // Matrice RACI
             'raci.view',
 
-            // Demandes
+            // Demandes de reunions
             'meeting_requests.view',
             'meeting_requests.create',
             'meeting_requests.update',
             'meeting_requests.approve',
             'meeting_requests.delete',
 
+            // Demandes de participants
             'participant_requests.view',
             'participant_requests.create',
             'participant_requests.update',
             'participant_requests.approve',
             'participant_requests.delete',
 
-            // Comités d'organisation
+            // Comites d'organisation
             'organization_committees.view',
             'organization_committees.create',
             'organization_committees.update',
             'organization_committees.delete',
+
+            // Participants
+            'participants.view',
+            'participants.create',
+            'participants.update',
+            'participants.delete',
         ];
 
         foreach ($permissions as $name) {
@@ -131,15 +124,13 @@ class RoleAndPermissionSeeder extends Seeder
             ]);
         }
 
-        // --------------------------------
-        // 2. Création des rôles principaux
-        // --------------------------------
+        // 2. Creation des roles principaux
         $roles = [
             'super-admin',
             'admin',
-            'sg',     // Secrétariat Général
-            'dsi',    // DSI
-            'staff',  // utilisateur "standard"
+            'sg',
+            'dsi',
+            'staff',
         ];
 
         foreach ($roles as $roleName) {
@@ -149,7 +140,7 @@ class RoleAndPermissionSeeder extends Seeder
             ]);
         }
 
-        // Rafraîchir les instances
+        // Rafraichir les instances
         $allPermissions = Permission::all();
         $roleSuperAdmin = Role::where('name', 'super-admin')->first();
         $roleAdmin      = Role::where('name', 'admin')->first();
@@ -157,16 +148,14 @@ class RoleAndPermissionSeeder extends Seeder
         $roleDSI        = Role::where('name', 'dsi')->first();
         $roleStaff      = Role::where('name', 'staff')->first();
 
-        // ------------------------------------------------------
-        // 3. Attribution des permissions par "profils" métiers
-        // ------------------------------------------------------
+        // 3. Attribution des permissions par role
 
         // Super Admin : toutes les permissions
         if ($roleSuperAdmin) {
             $roleSuperAdmin->syncPermissions($allPermissions);
         }
 
-        // Admin : quasi toutes, sauf éventuellement quelques restrictions
+        // Admin : gestion globale applicative
         if ($roleAdmin) {
             $roleAdmin->syncPermissions([
                 'dashboard.view',
@@ -200,6 +189,14 @@ class RoleAndPermissionSeeder extends Seeder
                 'documents.create',
                 'documents.update',
                 'documents.delete',
+                'documents.download',
+                'documents.validate',
+
+                'document_types.view',
+                'document_types.create',
+                'document_types.update',
+                'document_types.delete',
+                'document_types.manage',
 
                 'calendar.view',
 
@@ -210,6 +207,7 @@ class RoleAndPermissionSeeder extends Seeder
                 'users.create',
                 'users.update',
                 'users.delete',
+                'users.manage',
 
                 'roles.view',
                 'roles.create',
@@ -217,10 +215,35 @@ class RoleAndPermissionSeeder extends Seeder
                 'roles.delete',
 
                 'raci.view',
+
+                'reports.view',
+                'reports.export',
+
+                'meeting_requests.view',
+                'meeting_requests.create',
+                'meeting_requests.update',
+                'meeting_requests.approve',
+                'meeting_requests.delete',
+
+                'participant_requests.view',
+                'participant_requests.create',
+                'participant_requests.update',
+                'participant_requests.approve',
+                'participant_requests.delete',
+
+                'organization_committees.view',
+                'organization_committees.create',
+                'organization_committees.update',
+                'organization_committees.delete',
+
+                'participants.view',
+                'participants.create',
+                'participants.update',
+                'participants.delete',
             ]);
         }
 
-        // Rôle SG : focalisé sur pilotage et validation
+        // SG : pilotage et validation
         if ($roleSG) {
             $roleSG->syncPermissions([
                 'dashboard.view',
@@ -240,6 +263,8 @@ class RoleAndPermissionSeeder extends Seeder
                 'documents.update',
                 'documents.download',
                 'documents.validate',
+
+                'document_types.view',
 
                 'calendar.view',
 
@@ -262,10 +287,13 @@ class RoleAndPermissionSeeder extends Seeder
                 'organization_committees.view',
                 'organization_committees.create',
                 'organization_committees.update',
+
+                'participants.view',
+                'participants.create',
             ]);
         }
 
-        // Rôle DSI : gestion technique / paramétrage
+        // DSI : gestion technique / parametrage
         if ($roleDSI) {
             $roleDSI->syncPermissions([
                 'dashboard.view',
@@ -291,6 +319,12 @@ class RoleAndPermissionSeeder extends Seeder
 
                 'documents.view',
 
+                'document_types.view',
+                'document_types.create',
+                'document_types.update',
+                'document_types.delete',
+                'document_types.manage',
+
                 'calendar.view',
 
                 'notifications.view',
@@ -312,10 +346,16 @@ class RoleAndPermissionSeeder extends Seeder
                 'raci.view',
 
                 'meeting_requests.view',
+                'meeting_requests.create',
+                'meeting_requests.update',
                 'meeting_requests.approve',
+                'meeting_requests.delete',
 
                 'participant_requests.view',
+                'participant_requests.create',
+                'participant_requests.update',
                 'participant_requests.approve',
+                'participant_requests.delete',
 
                 'organization_committees.view',
                 'organization_committees.create',
@@ -324,10 +364,11 @@ class RoleAndPermissionSeeder extends Seeder
                 'participants.view',
                 'participants.create',
                 'participants.update',
+                'participants.delete',
             ]);
         }
 
-        // Rôle Staff : lecture + création limitée
+        // Staff : lecture + creation limitee
         if ($roleStaff) {
             $roleStaff->syncPermissions([
                 'dashboard.view',
@@ -337,6 +378,8 @@ class RoleAndPermissionSeeder extends Seeder
 
                 'documents.view',
                 'documents.download',
+
+                'document_types.view',
 
                 'delegations.view',
 
@@ -351,6 +394,8 @@ class RoleAndPermissionSeeder extends Seeder
 
                 'participant_requests.view',
                 'participant_requests.create',
+
+                'participants.view',
             ]);
         }
     }

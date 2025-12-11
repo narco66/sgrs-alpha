@@ -27,4 +27,14 @@ class ProfileUpdateRequest extends FormRequest
             ],
         ];
     }
+
+    /**
+     * Messages de validation personnalisés.
+     */
+    public function messages(): array
+    {
+        return [
+            'email.unique' => 'Cette adresse email est déjà utilisée par un autre utilisateur.',
+        ];
+    }
 }

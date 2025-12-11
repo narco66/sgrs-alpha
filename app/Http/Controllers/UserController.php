@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserCreated;
+use App\Events\UserUpdated;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Delegation;
@@ -135,6 +137,9 @@ class UserController extends Controller
             $user->syncPermissions($permissions);
         }
 
+        // EF40 / Notifications : création d'utilisateur (alerte interne + email)
+        event(new UserCreated($user, $request->user()));
+
         return redirect()
             ->route('users.show', $user)
             ->with('success', 'L\'utilisateur a été créé avec succès.');
@@ -208,6 +213,9 @@ class UserController extends Controller
             $user->syncRoles($roles);
             $user->syncPermissions($permissions);
         }
+
+        // EF40 / Notifications : mise à jour d'utilisateur (alerte à l'intéressé)
+        event(new UserUpdated($user, $request->user()));
 
         return redirect()
             ->route('users.show', $user)

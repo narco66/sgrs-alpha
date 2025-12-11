@@ -43,9 +43,10 @@ class MeetingCancellationNotification extends Notification implements ShouldQueu
         return [
             'meeting_id' => $this->meeting->id,
             'title' => $this->meeting->title,
-            'start_at' => $this->meeting->start_at,
+            'start_at' => $this->meeting->start_at?->toIso8601String(),
             'reason' => $this->reason,
             'type' => 'meeting_cancelled',
+            'message' => 'La réunion "' . $this->meeting->title . '" a été annulée.',
         ];
     }
 

@@ -20,12 +20,10 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportingController;
 
 
-// Page d'accueil publique (landing page SaaS SGRS-CEEAC)
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Page d'accueil publique
+Route::view('/', 'home')->name('home');
 
-// Espace applicatif authentifié SGRS-CEEAC
+// Page d'accueil / tableau de bord SGRS-CEEAC
 Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -86,23 +84,25 @@ Route::middleware(['auth', 'verified'])
         Route::resource('meetings', MeetingController::class);
         Route::resource('participants', ParticipantController::class);
 
+        Route::post('/meetings/{meeting}/status', [MeetingController::class, 'changeStatus'])
+            ->name('meetings.change-status');
         Route::post('/meetings/{meeting}/notify', [MeetingController::class, 'notifyParticipants'])
             ->name('meetings.notify');
-        
-        // Routes PDF pour les réunions
-        Route::prefix('meetings/{meeting}')->name('meetings.')->group(function () {
-            Route::get('pdf', [MeetingController::class, 'exportPdf'])->name('pdf');
-            Route::get('pdf/invitation', [MeetingController::class, 'exportInvitationPdf'])->name('pdf.invitation');
-            Route::get('pdf/attendance', [MeetingController::class, 'exportAttendancePdf'])->name('pdf.attendance');
-            Route::get('pdf/minutes', [MeetingController::class, 'exportMinutesPdf'])->name('pdf.minutes');
-            Route::get('pdf/logistics', [MeetingController::class, 'exportLogisticsPdf'])->name('pdf.logistics');
-            Route::get('pdf/agenda', [MeetingController::class, 'exportAgendaPdf'])->name('pdf.agenda');
-        });
+        Route::get('/meetings/{meeting}/pdf', [MeetingController::class, 'exportPdf'])
+            ->name('meetings.pdf');
+        Route::get('/meetings/{meeting}/pdf/invitation', [MeetingController::class, 'exportInvitationPdf'])
+            ->name('meetings.pdf.invitation');
+        Route::get('/meetings/{meeting}/pdf/agenda', [MeetingController::class, 'exportAgendaPdf'])
+            ->name('meetings.pdf.agenda');
+        Route::get('/meetings/{meeting}/pdf/attendance', [MeetingController::class, 'exportAttendancePdf'])
+            ->name('meetings.pdf.attendance');
+        Route::get('/meetings/{meeting}/pdf/minutes', [MeetingController::class, 'exportMinutesPdf'])
+            ->name('meetings.pdf.minutes');
+        Route::get('/meetings/{meeting}/pdf/logistics', [MeetingController::class, 'exportLogisticsPdf'])
+            ->name('meetings.pdf.logistics');
 
-        // Gestion complète des salles
-        Route::resource('rooms', RoomController::class);
-        Route::post('rooms/{room}/toggle-status', [RoomController::class, 'toggleStatus'])->name('rooms.toggle-status');
-        Route::get('rooms/{room}/availability', [RoomController::class, 'checkAvailability'])->name('rooms.availability');
+        Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index');
+        Route::get('rooms/{room}', [RoomController::class, 'show'])->name('rooms.show');
 
         Route::resource('documents', DocumentController::class)->except(['edit', 'update']);
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])
@@ -126,46 +126,6 @@ Route::middleware(['auth', 'verified'])
         Route::resource('delegations', DelegationController::class);
         Route::get('delegations/{delegation}/pdf', [DelegationController::class, 'exportPdf'])
             ->name('delegations.pdf');
-        Route::post('delegations/{delegation}/confirm', [DelegationController::class, 'confirm'])
-            ->name('delegations.confirm');
-        
-        // Membres de délégation
-        Route::prefix('delegations/{delegation}')->name('delegations.')->group(function () {
-            Route::resource('members', \App\Http\Controllers\DelegationMemberController::class)
-                ->except(['index', 'show']);
-            Route::get('members', [\App\Http\Controllers\DelegationMemberController::class, 'index'])
-                ->name('members.index');
-            Route::patch('members/{member}/status', [\App\Http\Controllers\DelegationMemberController::class, 'updateStatus'])
-                ->name('members.update-status');
-            Route::get('members/{member}/badge', [\App\Http\Controllers\DelegationMemberController::class, 'exportBadgePdf'])
-                ->name('members.badge');
-            Route::get('badges', [\App\Http\Controllers\DelegationMemberController::class, 'exportAllBadgesPdf'])
-                ->name('badges');
-        });
-        
-        // Cahier des charges
-        Route::prefix('meetings/{meeting}')->name('terms-of-reference.')->group(function () {
-            Route::get('terms-of-reference', [\App\Http\Controllers\TermsOfReferenceController::class, 'show'])
-                ->name('show');
-            Route::get('terms-of-reference/create', [\App\Http\Controllers\TermsOfReferenceController::class, 'create'])
-                ->name('create');
-            Route::post('terms-of-reference', [\App\Http\Controllers\TermsOfReferenceController::class, 'store'])
-                ->name('store');
-            Route::get('terms-of-reference/{termsOfReference}/edit', [\App\Http\Controllers\TermsOfReferenceController::class, 'edit'])
-                ->name('edit');
-            Route::put('terms-of-reference/{termsOfReference}', [\App\Http\Controllers\TermsOfReferenceController::class, 'update'])
-                ->name('update');
-            Route::post('terms-of-reference/{termsOfReference}/validate', [\App\Http\Controllers\TermsOfReferenceController::class, 'validateTerms'])
-                ->name('validate');
-            Route::post('terms-of-reference/{termsOfReference}/sign', [\App\Http\Controllers\TermsOfReferenceController::class, 'sign'])
-                ->name('sign');
-            Route::get('terms-of-reference/{termsOfReference}/pdf', [\App\Http\Controllers\TermsOfReferenceController::class, 'exportPdf'])
-                ->name('pdf');
-            Route::get('terms-of-reference/{termsOfReference}/download-signed', [\App\Http\Controllers\TermsOfReferenceController::class, 'downloadSignedDocument'])
-                ->name('download-signed');
-            Route::post('terms-of-reference/{termsOfReference}/version', [\App\Http\Controllers\TermsOfReferenceController::class, 'createVersion'])
-                ->name('create-version');
-        });
         Route::get('organization-committees/{organizationCommittee}/pdf', [OrganizationCommitteeController::class, 'exportPdf'])
             ->name('organization-committees.pdf');
         Route::resource('document-types', \App\Http\Controllers\DocumentTypeController::class);
@@ -178,6 +138,8 @@ Route::middleware(['auth', 'verified'])
         // Changement de statut (workflow)
         Route::post('meetings/{meeting}/status', [MeetingController::class, 'changeStatus'])
             ->name('meetings.change-status');
+
+        Route::resource('participants', ParticipantController::class);
         Route::prefix('meetings/{meeting}')->group(function () {
             Route::get('participants', [MeetingParticipantController::class, 'index'])
                 ->name('meetings.participants.index');

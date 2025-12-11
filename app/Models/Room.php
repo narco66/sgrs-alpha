@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use App\Traits\LogsActivity;
 
 class Room extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use LogsActivity;
 
     /**
      * Nom de la table en français

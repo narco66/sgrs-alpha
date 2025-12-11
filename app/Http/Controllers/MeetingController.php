@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\MeetingStatus;
+use App\Events\MeetingCancelled;
+use App\Events\MeetingCreated;
+use App\Events\MeetingInvitationsRequested;
+use App\Events\MeetingUpdated;
 use App\Http\Requests\StoreMeetingRequest;
 use App\Http\Requests\UpdateMeetingRequest;
 use App\Models\Committee;
@@ -228,9 +232,8 @@ class MeetingController extends Controller
         // Les délégations peuvent être ajoutées après la création de la réunion
         // depuis la page de détails de la réunion
 
-        // EF40 - Envoi des invitations par email et notification interne
-        // Note: Les invitations seront envoyées aux délégations, pas aux participants individuels
-        $this->sendMeetingInvitations($meeting);
+        // EF40 - Événement de création (notifications internes / email via NotificationService)
+        event(new MeetingCreated($meeting, Auth::user()));
 
         // Construire le message de succès détaillé
         $successMessages = ['✓ La réunion a été créée avec succès.'];
@@ -542,6 +545,9 @@ class MeetingController extends Controller
             }
         }
 
+        // Notifier la modification de la réunion (EF40)
+        event(new MeetingUpdated($meeting, Auth::user()));
+
         // Détecter quel onglet était actif pour rediriger vers l'édition avec l'onglet approprié
         $activeTab = $request->input('active_tab', 'general');
         
@@ -557,17 +563,8 @@ class MeetingController extends Controller
      */
     public function destroy(Meeting $meeting)
     {
-        // EF40 - Notification d'annulation aux délégations
-        $meeting->load(['delegations.members']);
-        
-        foreach ($meeting->delegations as $delegation) {
-            foreach ($delegation->members as $member) {
-                if ($member->email) {
-                    // Envoyer notification par email si nécessaire
-                    // Note: Implémenter une notification spécifique pour les membres de délégation
-                }
-            }
-        }
+        // EF40 - Notification d'annulation (email + notification interne via événements)
+        event(new MeetingCancelled($meeting, auth()->user()));
 
         $meeting->delete();
 
@@ -814,81 +811,18 @@ class MeetingController extends Controller
     {
         $this->authorize('update', $meeting);
 
-        // Charger les délégations et leurs membres
+        // Charger les délégations et leurs membres pour contrôle fonctionnel
         $meeting->load(['delegations.members', 'meetingType', 'room']);
 
-        // Vérifier s'il y a des délégations
         if ($meeting->delegations->isEmpty()) {
             return back()->with('error', 'Cette réunion n\'a aucune délégation associée. Veuillez d\'abord ajouter des délégations à cette réunion.');
         }
 
-        $sentCount = 0;
-        $errorMessages = [];
-        $recipientsList = [];
-        
-        foreach ($meeting->delegations as $delegation) {
-            // Envoyer au chef de délégation (champ direct de la délégation)
-            if (!empty($delegation->head_of_delegation_email)) {
-                try {
-                    \Illuminate\Support\Facades\Notification::route('mail', [
-                        $delegation->head_of_delegation_email => $delegation->head_of_delegation_name ?? 'Chef de Délégation'
-                    ])->notify(new \App\Notifications\DelegationMeetingInvitationNotification($meeting, $delegation));
-                    $sentCount++;
-                    $recipientsList[] = $delegation->head_of_delegation_email;
-                } catch (\Exception $e) {
-                    $errorMessages[] = "Chef {$delegation->title}: " . $e->getMessage();
-                    \Log::error('Erreur envoi notification chef délégation', [
-                        'email' => $delegation->head_of_delegation_email,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-            
-            // Envoyer à tous les membres de la délégation
-            foreach ($delegation->members as $member) {
-                if (!empty($member->email)) {
-                    try {
-                        \Illuminate\Support\Facades\Notification::route('mail', [
-                            $member->email => $member->full_name ?? $member->first_name
-                        ])->notify(new \App\Notifications\DelegationMeetingInvitationNotification($meeting, $delegation, $member));
-                        $sentCount++;
-                        $recipientsList[] = $member->email;
-                    } catch (\Exception $e) {
-                        $errorMessages[] = "{$member->email}: " . $e->getMessage();
-                        \Log::error('Erreur envoi notification membre', [
-                            'email' => $member->email,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            }
-        }
+        // EF40-EF43 : déléguer l’envoi des invitations (emails + notifications internes)
+        // au NotificationService via l’événement métier.
+        event(new MeetingInvitationsRequested($meeting, auth()->user(), 'manual'));
 
-        // Construire le message de résultat
-        if ($sentCount === 0 && !empty($errorMessages)) {
-            // Toutes les tentatives ont échoué - afficher l'erreur SMTP
-            $firstError = $errorMessages[0] ?? 'Erreur inconnue';
-            return back()->with('error', 
-                "Échec d'envoi : {$firstError}<br><br>" .
-                "<small>Vérifiez votre configuration SMTP dans .env. Pour Gmail, vous devez utiliser un <strong>mot de passe d'application</strong> " .
-                "(pas votre mot de passe Gmail normal).</small>"
-            );
-        }
-        
-        if ($sentCount === 0) {
-            // Aucun destinataire trouvé
-            $delegationsCount = $meeting->delegations->count();
-            $totalMembers = $meeting->delegations->sum(fn($d) => $d->members->count());
-            return back()->with('error', "Aucun destinataire avec email. {$delegationsCount} délégation(s), {$totalMembers} membre(s).");
-        }
-
-        // Succès (partiel ou total)
-        $message = "✓ Convocations envoyées à <strong>{$sentCount}</strong> destinataire(s) : " . implode(', ', $recipientsList);
-        if (!empty($errorMessages)) {
-            $message .= "<br><small class='text-warning'>" . count($errorMessages) . " envoi(s) ont échoué.</small>";
-        }
-
-        return back()->with('success', $message);
+        return back()->with('success', 'Les convocations ont été planifiées pour l’ensemble des délégations associées à cette réunion.');
     }
 
     /**
@@ -897,19 +831,8 @@ class MeetingController extends Controller
      */
     protected function sendMeetingInvitations(Meeting $meeting): void
     {
-        // Charger les délégations et leurs membres
-        $meeting->loadMissing(['delegations.members', 'meetingType', 'room']);
-
-        // TODO: Implémenter l'envoi de notifications aux délégations
-        // Les notifications doivent être envoyées aux chefs de délégation et/ou aux membres
-        // selon la logique métier de la CEEAC
-        
-        foreach ($meeting->delegations as $delegation) {
-            // Envoyer notification au chef de délégation
-            $head = $delegation->members()->where('role', 'head')->first();
-            if ($head && $head->email) {
-                // TODO: Créer et envoyer une notification spécifique pour les délégations
-            }
-        }
+        // Utilisé pour des scénarios futurs éventuels : on centralise désormais
+        // l’envoi via l’événement MeetingInvitationsRequested.
+        event(new MeetingInvitationsRequested($meeting, auth()->user(), 'automatic'));
     }
 }

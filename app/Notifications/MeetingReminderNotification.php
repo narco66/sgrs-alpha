@@ -45,9 +45,11 @@ class MeetingReminderNotification extends Notification implements ShouldQueue
         return [
             'meeting_id'   => $this->meeting->id,
             'title'        => $this->meeting->title,
-            'start_at'     => $this->meeting->start_at,
+            'start_at'     => $this->meeting->start_at?->toIso8601String(),
             'meeting_type' => $this->meeting->meetingType?->name,
             'room'         => $this->meeting->room?->name,
+            'type'         => 'meeting_reminder',
+            'message'      => 'Rappel de réunion : ' . $this->meeting->title,
         ];
     }
 

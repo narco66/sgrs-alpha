@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\AuditLog;
+use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
@@ -24,8 +24,8 @@ trait LogsActivity
             $new = [];
 
             foreach ($changes as $key => $value) {
-                // On ignore timestamps
-                if (in_array($key, ['updated_at', 'created_at', 'deleted_at'])) {
+                // On ignore timestamps et champs sensibles
+                if (in_array($key, ['updated_at', 'created_at', 'deleted_at', 'password', 'remember_token'])) {
                     continue;
                 }
                 $old[$key] = $original[$key] ?? null;
@@ -44,16 +44,12 @@ trait LogsActivity
 
     public function writeAuditLog(string $event, ?array $oldValues, ?array $newValues, ?array $meta = null): void
     {
-        AuditLog::create([
-            'event'          => $event,
-            'auditable_type' => static::class,
-            'auditable_id'   => $this->getKey(),
-            'user_id'        => Auth::id(),
-            'ip_address'     => Request::ip(),
-            'user_agent'     => Request::header('User-Agent'),
-            'old_values'     => $oldValues,
-            'new_values'     => $newValues,
-            'meta'           => $meta,
-        ]);
+        AuditLogger::log(
+            event: $event,
+            target: $this,
+            old: $oldValues,
+            new: $newValues,
+            meta: $meta ?? []
+        );
     }
 }

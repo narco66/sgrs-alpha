@@ -121,15 +121,18 @@ class DelegationMeetingInvitationNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'meeting_id' => $this->meeting->id,
+            'meeting_id'    => $this->meeting->id,
             'delegation_id' => $this->delegation->id,
-            'member_id' => $this->member?->id,
-            'title' => $this->meeting->title,
-            'start_at' => $this->meeting->start_at?->toIso8601String(),
-            'type' => 'delegation_meeting_invitation',
+            'member_id'     => $this->member?->id,
+            'title'         => $this->meeting->title,
+            'start_at'      => $this->meeting->start_at?->toIso8601String(),
+            'type'          => 'delegation_meeting_invitation',
+            'message'       => 'Convocation envoyée pour la réunion : ' . $this->meeting->title,
         ];
     }
 }
+
+
 
 
 

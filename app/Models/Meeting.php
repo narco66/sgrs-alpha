@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use App\Models\Document;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsActivity;
 
 class Meeting extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use LogsActivity;
 
     /**
      * Nom de la table en français

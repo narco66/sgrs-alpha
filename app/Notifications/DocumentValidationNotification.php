@@ -55,6 +55,7 @@ class DocumentValidationNotification extends Notification implements ShouldQueue
             'validation_level' => $this->validation->validation_level,
             'status' => $this->validation->status,
             'type' => 'document_validation',
+            'message' => 'Validation du document "' . $this->document->title . '" au niveau ' . $this->validation->level_label . ' : ' . $this->validation->status_label,
         ];
     }
 

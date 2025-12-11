@@ -48,9 +48,10 @@ class DocumentAddedNotification extends Notification implements ShouldQueue
         return [
             'document_id' => $this->document->id,
             'title'       => $this->document->title,
-            'type'        => $this->document->type?->name,
+            'document_type' => $this->document->type?->name,
             'meeting_id'  => $this->document->meeting_id,
-            'type_notif'  => 'document_added',
+            'type_notif'  => 'document_added', // compatibilité ascendante
+            'type'        => 'document_added',
             'message'     => 'Nouveau document : ' . $this->document->title,
         ];
     }

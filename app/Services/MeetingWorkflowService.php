@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\MeetingStatus;
+use App\Events\MeetingStatusChanged;
 use App\Models\Meeting;
 use App\Models\MeetingStatusHistory;
 use App\Models\User;
@@ -70,11 +71,14 @@ class MeetingWorkflowService
                 );
             }
 
-            // --- 6. Notifications éventuelles (à implémenter si besoin) --
-            // Exemple :
-            // if (method_exists($meeting, 'notifyStatusChanged')) {
-            //     $meeting->notifyStatusChanged($oldStatusValue, $newStatusValue, $user, $comment);
-            // }
+            // --- 6. Notifications et événements métier (EF40-EF43) -------
+            event(new MeetingStatusChanged(
+                meeting: $meeting,
+                oldStatus: $oldStatusValue,
+                newStatus: $newStatusValue,
+                actor: $user,
+                comment: $comment,
+            ));
         });
     }
 }

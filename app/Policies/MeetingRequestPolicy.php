@@ -7,57 +7,55 @@ use App\Models\User;
 
 class MeetingRequestPolicy
 {
-    public function before(User $user, string $ability): bool|null
+    public function before(User $user, string $ability): ?bool
     {
         if ($user->hasRole('super-admin')) {
             return true;
         }
+
         return null;
     }
 
     public function viewAny(User $user): bool
     {
-        return true; // Tous les utilisateurs peuvent voir leurs demandes
+        return $user->can('meeting_requests.view') || $user->can('meeting_requests.create');
     }
 
     public function view(User $user, MeetingRequest $meetingRequest): bool
     {
-        return $user->hasAnyRole(['admin', 'dsi', 'chef-departement'])
-            || $meetingRequest->requested_by === $user->id;
+        return $user->can('meeting_requests.view') || $meetingRequest->requested_by === $user->id;
     }
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['admin', 'dsi', 'chef-departement', 'organisateur', 'fonctionnaire']);
+        return $user->can('meeting_requests.create');
     }
 
     public function update(User $user, MeetingRequest $meetingRequest): bool
     {
-        // Seuls les chefs de département et admins peuvent approuver/rejeter
-        if (in_array($ability, ['approve', 'reject'])) {
-            return $user->hasAnyRole(['admin', 'dsi', 'chef-departement']);
+        if ($user->can('meeting_requests.update')) {
+            return true;
         }
-        
-        // Le demandeur peut modifier sa demande si elle est en attente
-        return $meetingRequest->requested_by === $user->id 
-            && $meetingRequest->status === 'pending';
+
+        return $meetingRequest->requested_by === $user->id && $meetingRequest->status === 'pending';
     }
 
     public function delete(User $user, MeetingRequest $meetingRequest): bool
     {
-        return $user->hasAnyRole(['admin', 'dsi'])
-            || ($meetingRequest->requested_by === $user->id && $meetingRequest->status === 'pending');
+        if ($user->can('meeting_requests.delete')) {
+            return true;
+        }
+
+        return $meetingRequest->requested_by === $user->id && $meetingRequest->status === 'pending';
     }
 
     public function approve(User $user, MeetingRequest $meetingRequest): bool
     {
-        return $user->hasAnyRole(['admin', 'dsi', 'chef-departement'])
-            && $meetingRequest->status === 'pending';
+        return $user->can('meeting_requests.approve') && $meetingRequest->status === 'pending';
     }
 
     public function reject(User $user, MeetingRequest $meetingRequest): bool
     {
-        return $user->hasAnyRole(['admin', 'dsi', 'chef-departement'])
-            && $meetingRequest->status === 'pending';
+        return $user->can('meeting_requests.approve') && $meetingRequest->status === 'pending';
     }
 }

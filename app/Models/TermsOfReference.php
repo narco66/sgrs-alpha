@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\LogsActivity;
 
 /**
  * Modèle pour le Cahier des charges entre la CEEAC et le pays hôte
@@ -15,7 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class TermsOfReference extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    use SoftDeletes;
+    use LogsActivity;
 
     /**
      * Nom de la table en français

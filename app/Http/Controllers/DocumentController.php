@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\DocumentSubmitted;
+use App\Events\DocumentValidated;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\DocumentVersion;
 use App\Models\DocumentValidation;
 use App\Models\Meeting;
-use App\Notifications\DocumentValidationNotification;
-use App\Notifications\DocumentAddedNotification;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -184,6 +185,9 @@ class DocumentController extends Controller
             $doc->update(['validation_status' => 'pending']);
         }
 
+        // EF40 / EF41 : notifier la soumission d'un document
+        event(new DocumentSubmitted($doc, Auth::user()));
+
         return redirect()
             ->route('documents.index')
             ->with('success', 'Le document a été ajouté avec succès.');
@@ -216,6 +220,19 @@ class DocumentController extends Controller
         if (! Storage::disk('public')->exists($document->file_path)) {
             return back()->with('error', 'Le fichier associé à ce document est introuvable.');
         }
+
+        // Audit : téléchargement de document
+        AuditLogger::log(
+            event: 'document_downloaded',
+            target: $document,
+            old: null,
+            new: null,
+            meta: [
+                'file_name' => $document->file_name,
+                'original_name' => $document->original_name,
+                'mime_type' => $document->mime_type,
+            ]
+        );
 
         return Storage::disk('public')->download(
             $document->file_path,
@@ -311,10 +328,8 @@ class DocumentController extends Controller
                 $document->update(['validation_status' => 'pending']);
             }
 
-            // Envoyer une notification à l'auteur du document
-            if ($document->uploader) {
-                $document->uploader->notify(new DocumentValidationNotification($document, $validation));
-            }
+            // EF40 : événement de validation / rejet pour la chaîne Protocole → SG → Président
+            event(new DocumentValidated($document, $validation, Auth::user()));
         }
 
         return redirect()

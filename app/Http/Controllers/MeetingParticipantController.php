@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ParticipantRsvpUpdated;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\User;
@@ -93,7 +94,8 @@ class MeetingParticipantController extends Controller
 
         $participant->update($attributes);
 
-        // Ici tu peux déclencher des notifications, logs, etc.
+        // EF42 / EF43 : notifications sur les réponses RSVP (participants internes)
+        event(new ParticipantRsvpUpdated($meeting, $participant, $request->user()));
 
         return redirect()
             ->back()

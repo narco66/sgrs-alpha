@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ParticipantRequest;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
+use App\Models\User;
+use App\Notifications\ParticipantRequestStatusUpdatedNotification;
+use App\Notifications\ParticipantRequestSubmittedNotification;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +82,20 @@ class ParticipantRequestController extends Controller
             'status' => 'pending',
         ]);
 
-        // Notification au chef de département (à implémenter)
+        // Notifications aux rôles de validation (DSI, SG, Admin, Super Admin)
+        $validators = User::role(['dsi', 'sg', 'admin', 'super-admin'])->get();
+        foreach ($validators as $user) {
+            $user->notify(new ParticipantRequestSubmittedNotification($participantRequest));
+        }
+
+        // Audit
+        AuditLogger::log(
+            event: 'participant_request_created',
+            target: $participantRequest,
+            old: null,
+            new: $participantRequest->getAttributes(),
+            meta: []
+        );
 
         return redirect()
             ->route('participant-requests.show', $participantRequest)
@@ -102,7 +119,7 @@ class ParticipantRequestController extends Controller
      */
     public function approve(Request $request, ParticipantRequest $participantRequest)
     {
-        $this->authorize('update', $participantRequest);
+        $this->authorize('approve', $participantRequest);
 
         $validated = $request->validate([
             'review_comments' => ['nullable', 'string'],
@@ -128,7 +145,19 @@ class ParticipantRequestController extends Controller
                 'participant_id' => $participant->id,
             ]);
 
-            // Envoyer l'invitation (à implémenter)
+            // Notification au demandeur
+            if ($participantRequest->requester) {
+                $participantRequest->requester->notify(new ParticipantRequestStatusUpdatedNotification($participantRequest));
+            }
+
+            // Audit
+            AuditLogger::log(
+                event: 'participant_request_approved',
+                target: $participantRequest,
+                old: null,
+                new: $participantRequest->getAttributes(),
+                meta: ['participant_id' => $participant->id]
+            );
         });
 
         return redirect()
@@ -141,7 +170,7 @@ class ParticipantRequestController extends Controller
      */
     public function reject(Request $request, ParticipantRequest $participantRequest)
     {
-        $this->authorize('update', $participantRequest);
+        $this->authorize('reject', $participantRequest);
 
         $validated = $request->validate([
             'review_comments' => ['required', 'string', 'min:10'],
@@ -154,7 +183,18 @@ class ParticipantRequestController extends Controller
             'review_comments' => $validated['review_comments'],
         ]);
 
-        // Notification au demandeur (à implémenter)
+        // Notification au demandeur
+        if ($participantRequest->requester) {
+            $participantRequest->requester->notify(new ParticipantRequestStatusUpdatedNotification($participantRequest));
+        }
+
+        AuditLogger::log(
+            event: 'participant_request_rejected',
+            target: $participantRequest,
+            old: null,
+            new: $participantRequest->getAttributes(),
+            meta: []
+        );
 
         return redirect()
             ->route('participant-requests.show', $participantRequest)
@@ -173,6 +213,14 @@ class ParticipantRequestController extends Controller
         }
 
         $participantRequest->delete();
+
+        AuditLogger::log(
+            event: 'participant_request_deleted',
+            target: $participantRequest,
+            old: $participantRequest->getOriginal(),
+            new: null,
+            meta: []
+        );
 
         return redirect()
             ->route('participant-requests.index')

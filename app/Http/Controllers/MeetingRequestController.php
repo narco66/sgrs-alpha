@@ -7,6 +7,10 @@ use App\Models\Meeting;
 use App\Models\MeetingType;
 use App\Models\Committee;
 use App\Models\Room;
+use App\Models\User;
+use App\Notifications\MeetingRequestStatusUpdatedNotification;
+use App\Notifications\MeetingRequestSubmittedNotification;
+use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +94,20 @@ class MeetingRequestController extends Controller
             'status' => 'pending',
         ]);
 
-        // Notification au chef de département (à implémenter)
+        // Notifications aux rôles de validation (DSI, SG, Admin, Super Admin)
+        $validators = User::role(['dsi', 'sg', 'admin', 'super-admin'])->get();
+        foreach ($validators as $user) {
+            $user->notify(new MeetingRequestSubmittedNotification($meetingRequest));
+        }
+
+        // Journalisation d'audit
+        AuditLogger::log(
+            event: 'meeting_request_created',
+            target: $meetingRequest,
+            old: null,
+            new: $meetingRequest->getAttributes(),
+            meta: []
+        );
 
         return redirect()
             ->route('meeting-requests.show', $meetingRequest)
@@ -114,7 +131,7 @@ class MeetingRequestController extends Controller
      */
     public function approve(Request $request, MeetingRequest $meetingRequest)
     {
-        $this->authorize('update', $meetingRequest);
+        $this->authorize('approve', $meetingRequest);
 
         $validated = $request->validate([
             'review_comments' => ['nullable', 'string'],
@@ -143,7 +160,19 @@ class MeetingRequestController extends Controller
                 'meeting_id' => $meeting->id,
             ]);
 
-            // Notification au demandeur (à implémenter)
+            // Notification au demandeur
+            if ($meetingRequest->requester) {
+                $meetingRequest->requester->notify(new MeetingRequestStatusUpdatedNotification($meetingRequest));
+            }
+
+            // Audit
+            AuditLogger::log(
+                event: 'meeting_request_approved',
+                target: $meetingRequest,
+                old: null,
+                new: $meetingRequest->getAttributes(),
+                meta: ['meeting_id' => $meeting->id]
+            );
         });
 
         return redirect()
@@ -156,7 +185,7 @@ class MeetingRequestController extends Controller
      */
     public function reject(Request $request, MeetingRequest $meetingRequest)
     {
-        $this->authorize('update', $meetingRequest);
+        $this->authorize('reject', $meetingRequest);
 
         $validated = $request->validate([
             'review_comments' => ['required', 'string', 'min:10'],
@@ -169,7 +198,19 @@ class MeetingRequestController extends Controller
             'review_comments' => $validated['review_comments'],
         ]);
 
-        // Notification au demandeur (à implémenter)
+        // Notification au demandeur
+        if ($meetingRequest->requester) {
+            $meetingRequest->requester->notify(new MeetingRequestStatusUpdatedNotification($meetingRequest));
+        }
+
+        // Audit
+        AuditLogger::log(
+            event: 'meeting_request_rejected',
+            target: $meetingRequest,
+            old: null,
+            new: $meetingRequest->getAttributes(),
+            meta: []
+        );
 
         return redirect()
             ->route('meeting-requests.show', $meetingRequest)
@@ -188,6 +229,14 @@ class MeetingRequestController extends Controller
         }
 
         $meetingRequest->delete();
+
+        AuditLogger::log(
+            event: 'meeting_request_deleted',
+            target: $meetingRequest,
+            old: $meetingRequest->getOriginal(),
+            new: null,
+            meta: []
+        );
 
         return redirect()
             ->route('meeting-requests.index')

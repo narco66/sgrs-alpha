@@ -19,31 +19,8 @@ class RoleController extends Controller
      */
     public function index(Request $request)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        // Charger explicitement les rôles pour éviter les problèmes de cache
-        $user->load('roles');
-        
-        // Vérification directe des rôles (plus fiable que hasRole)
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        // Seul le super-admin peut accéder à la gestion des rôles
-        if (!$isSuperAdmin) {
-            $userRolesStr = implode(', ', $userRoles) ?: 'Aucun rôle';
-            $message = "Accès refusé.\n\n";
-            $message .= "Seul le Super-Administrateur peut accéder à la gestion des rôles et permissions.\n\n";
-            $message .= "Votre compte : {$user->email}\n";
-            $message .= "Vos rôles actuels : {$userRolesStr}\n\n";
-            $message .= "Pour accéder à cette page, connectez-vous avec :\n";
-            $message .= "Super-Admin : super.admin@sgrs-ceeac.org / Password@2025";
-            
-            abort(403, $message);
-        }
+        // Autorisation via la policy (meilleure pratique)
+        $this->authorize('viewAny', Role::class);
 
         $search = $request->get('search', '');
         
@@ -66,10 +43,10 @@ class RoleController extends Controller
         });
 
         return view('roles.index', [
-            'roles' => $roles,
+            'roles'          => $roles,
             'allPermissions' => $allPermissions,
-            'search' => $search,
-            'currentUser' => $user, // Passer l'utilisateur à la vue
+            'search'         => $search,
+            'currentUser'    => auth()->user(), // utile pour la vue
         ]);
     }
 
@@ -78,19 +55,8 @@ class RoleController extends Controller
      */
     public function create()
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        $user->load('roles');
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        if (!$isSuperAdmin) {
-            abort(403, 'Seul le Super-Administrateur peut créer des rôles.');
-        }
+        // Autorisation via la policy
+        $this->authorize('create', Role::class);
 
         $allPermissions = Permission::orderBy('name')->get()->groupBy(function ($permission) {
             $parts = explode('.', $permission->name);
@@ -107,19 +73,8 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        $user->load('roles');
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        if (!$isSuperAdmin) {
-            abort(403, 'Seul le Super-Administrateur peut créer des rôles.');
-        }
+        // Autorisation via la policy
+        $this->authorize('create', Role::class);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
@@ -149,31 +104,8 @@ class RoleController extends Controller
      */
     public function show(Role $role)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        // Charger explicitement les rôles
-        $user->load('roles');
-        
-        // Vérification directe des rôles (plus fiable que hasRole)
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        // Seul le super-admin peut voir les rôles
-        if (!$isSuperAdmin) {
-            $userRolesStr = implode(', ', $userRoles) ?: 'Aucun rôle';
-            $message = "Accès refusé.\n\n";
-            $message .= "Seul le Super-Administrateur peut voir les détails des rôles.\n\n";
-            $message .= "Votre compte : {$user->email}\n";
-            $message .= "Vos rôles actuels : {$userRolesStr}\n\n";
-            $message .= "Pour accéder à cette page, connectez-vous avec :\n";
-            $message .= "Super-Admin : super.admin@sgrs-ceeac.org / Password@2025";
-            
-            abort(403, $message);
-        }
+        // Autorisation via la policy
+        $this->authorize('view', $role);
 
         $role->load(['permissions', 'users']);
         
@@ -193,31 +125,8 @@ class RoleController extends Controller
      */
     public function edit(Role $role)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        // Charger explicitement les rôles
-        $user->load('roles');
-        
-        // Vérification directe des rôles (plus fiable que hasRole)
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        // Seul le super-admin peut modifier les rôles
-        if (!$isSuperAdmin) {
-            $userRolesStr = implode(', ', $userRoles) ?: 'Aucun rôle';
-            $message = "Accès refusé.\n\n";
-            $message .= "Seul le Super-Administrateur peut modifier les rôles et permissions.\n\n";
-            $message .= "Votre compte : {$user->email}\n";
-            $message .= "Vos rôles actuels : {$userRolesStr}\n\n";
-            $message .= "Pour accéder à cette page, connectez-vous avec :\n";
-            $message .= "Super-Admin : super.admin@sgrs-ceeac.org / Password@2025";
-            
-            abort(403, $message);
-        }
+        // Autorisation via la policy
+        $this->authorize('update', $role);
 
         $role->load('permissions');
         
@@ -237,19 +146,8 @@ class RoleController extends Controller
      */
     public function update(Request $request, Role $role)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        $user->load('roles');
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        if (!$isSuperAdmin) {
-            abort(403, 'Seul le Super-Administrateur peut modifier les rôles et permissions.');
-        }
+        // Autorisation via la policy
+        $this->authorize('update', $role);
 
         // Ne pas permettre la modification du nom des rôles système
         $systemRoles = ['super-admin', 'admin', 'sg', 'dsi', 'staff'];
@@ -293,19 +191,8 @@ class RoleController extends Controller
      */
     public function destroy(Role $role)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        $user->load('roles');
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        if (!$isSuperAdmin) {
-            abort(403, 'Seul le Super-Administrateur peut supprimer des rôles.');
-        }
+        // Autorisation via la policy
+        $this->authorize('delete', $role);
 
         // Ne pas permettre la suppression des rôles système
         $systemRoles = ['super-admin', 'admin', 'sg', 'dsi', 'staff'];
@@ -332,19 +219,8 @@ class RoleController extends Controller
      */
     public function assignToUser(Request $request, Role $role)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        $user->load('roles');
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        if (!$isSuperAdmin) {
-            abort(403, 'Seul le Super-Administrateur peut attribuer des rôles.');
-        }
+        // Autorisation : on réutilise la logique de mise à jour des rôles
+        $this->authorize('update', $role);
 
         $validated = $request->validate([
             'user_id' => ['required', 'exists:utilisateurs,id'],
@@ -365,19 +241,8 @@ class RoleController extends Controller
      */
     public function removeFromUser(Request $request, Role $role)
     {
-        $user = auth()->user();
-        
-        if (!$user) {
-            abort(403, 'Vous devez être connecté pour accéder à cette page.');
-        }
-        
-        $user->load('roles');
-        $userRoles = $user->roles->pluck('name')->toArray();
-        $isSuperAdmin = in_array('super-admin', $userRoles);
-        
-        if (!$isSuperAdmin) {
-            abort(403, 'Seul le Super-Administrateur peut retirer des rôles.');
-        }
+        // Autorisation : idem assignation
+        $this->authorize('update', $role);
 
         $validated = $request->validate([
             'user_id' => ['required', 'exists:utilisateurs,id'],
