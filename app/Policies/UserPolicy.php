@@ -36,10 +36,8 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        if ($user->id === $model->id) {
-            return true;
-        }
-
+        // Seuls les administrateurs / gestionnaires d'utilisateurs peuvent modifier un compte via UserController
+        // (l'utilisateur modifie son propre compte via le module Profil, pas ici).
         return $user->hasAnyPermission(['users.update', 'users.manage']);
     }
 

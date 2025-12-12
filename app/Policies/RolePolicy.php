@@ -7,23 +7,17 @@ use Spatie\Permission\Models\Role;
 
 class RolePolicy
 {
-    public function before(User $user, string $ability): ?bool
-    {
-        if ($user->hasRole('super-admin')) {
-            return true;
-        }
-
-        return null;
-    }
-
     /**
      * Determine if the user can view any roles.
-     * Utilise les permissions Spatie pluton pas de tester un role en dur.
+     * Utilise les permissions Spatie plutôt que de tester un rôle en dur.
      */
     public function viewAny(User $user): bool
     {
-        // Acces pour tout utilisateur ayant une permission de consultation/gestion des roles
-        return $user->can('roles.view') || $user->can('roles.manage');
+        // Accès pour tout utilisateur ayant une permission de consultation/gestion des rôles
+        // OU pour le super-admin (sécurité au cas où les permissions seraient incomplètes en base)
+        return $user->hasRole('super-admin')
+            || $user->can('roles.view')
+            || $user->can('roles.manage');
     }
 
     /**
@@ -31,7 +25,9 @@ class RolePolicy
      */
     public function view(User $user, Role $role): bool
     {
-        return $user->can('roles.view') || $user->can('roles.manage');
+        return $user->hasRole('super-admin')
+            || $user->can('roles.view')
+            || $user->can('roles.manage');
     }
 
     /**
@@ -39,7 +35,9 @@ class RolePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('roles.create') || $user->can('roles.manage');
+        return $user->hasRole('super-admin')
+            || $user->can('roles.create')
+            || $user->can('roles.manage');
     }
 
     /**
@@ -47,7 +45,9 @@ class RolePolicy
      */
     public function update(User $user, Role $role): bool
     {
-        return $user->can('roles.update') || $user->can('roles.manage');
+        return $user->hasRole('super-admin')
+            || $user->can('roles.update')
+            || $user->can('roles.manage');
     }
 
     /**
@@ -55,12 +55,14 @@ class RolePolicy
      */
     public function delete(User $user, Role $role): bool
     {
-        // Verifier d'abord que l'utilisateur a les permissions necessaires
-        if (! ($user->can('roles.delete') || $user->can('roles.manage'))) {
+        // Vérifier d'abord que l'utilisateur a les permissions nécessaires
+        if (! ($user->hasRole('super-admin')
+            || $user->can('roles.delete')
+            || $user->can('roles.manage'))) {
             return false;
         }
 
-        // Ne pas permettre la suppression des roles systeme
+        // Ne pas permettre la suppression des rôles système
         $systemRoles = ['super-admin', 'admin', 'sg', 'dsi', 'staff'];
         if (in_array($role->name, $systemRoles)) {
             return false;
@@ -69,3 +71,4 @@ class RolePolicy
         return true;
     }
 }
+

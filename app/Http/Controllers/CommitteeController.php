@@ -49,7 +49,7 @@ class CommitteeController extends Controller
 
     public function store(StoreCommitteeRequest $request)
     {
-        Committee::create([
+        $committee = Committee::create([
             'name'            => $request->input('name'),
             'code'            => strtoupper($request->input('code')),
             'meeting_type_id' => $request->input('meeting_type_id'),
@@ -58,6 +58,14 @@ class CommitteeController extends Controller
             'description'     => $request->input('description'),
             'sort_order'      => $request->input('sort_order', 0),
         ]);
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'id'     => $committee->id,
+                'name'   => $committee->name,
+            ]);
+        }
 
         return redirect()
             ->route('committees.index')

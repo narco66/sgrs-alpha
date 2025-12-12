@@ -37,7 +37,8 @@ class StoreMeetingRequest extends FormRequest
             'meeting_type_id'           => ['required', 'exists:types_reunions,id'],
             'date'                      => ['required', 'date'],
             'time'                      => ['required', 'date_format:H:i'],
-            'duration_minutes'          => ['required', 'integer', 'min:15', 'max:1440'],
+            'end_date'                  => ['required', 'date', 'after_or_equal:date'],
+            'end_time'                  => ['required', 'date_format:H:i'],
             'configuration'             => ['required', 'in:presentiel,hybride,visioconference'],
             'host_country'              => ['nullable', 'string', 'max:255'],
             'room_id'                   => ['nullable', 'exists:salles,id'],
@@ -62,14 +63,12 @@ class StoreMeetingRequest extends FormRequest
             'new_committee_description' => ['nullable', 'string', 'max:2000'],
             'new_committee_host_country' => ['nullable', 'string', 'max:255'],
             
-            // Cahier des charges (optionnel - peut être créé après)
+            // Cahier des charges (optionnel - peut être créé ou complété plus tard)
             'create_terms_of_reference' => ['nullable', 'boolean'],
             'terms_host_country'        => [
-                'nullable', 
-                'required_with:create_terms_of_reference',
-                'required_if:create_terms_of_reference,1', 
-                'string', 
-                'max:255'
+                'nullable',
+                'string',
+                'max:255',
             ],
             'terms_signature_date'       => ['nullable', 'date'],
             'terms_responsibilities_ceeac' => ['nullable', 'string'],
@@ -116,9 +115,7 @@ class StoreMeetingRequest extends FormRequest
             'new_committee_name.required_if'    => 'Le nom du nouveau comité d\'organisation est obligatoire.',
             'new_committee_name.required_with'   => 'Le nom du nouveau comité d\'organisation est obligatoire.',
             
-            // Messages pour le cahier des charges
-            'terms_host_country.required_if'    => 'Le pays hôte est obligatoire pour créer un cahier des charges.',
-            'terms_host_country.required_with'   => 'Le pays hôte est obligatoire pour créer un cahier des charges.',
+            // Messages pour le cahier des charges (plus de contrainte bloquante ici)
         ];
     }
 }

@@ -322,8 +322,16 @@
                             </td>
 
                             <td>
+                                @php
+                                    $duration = 0;
+                                    if ($meeting->start_at && $meeting->end_at) {
+                                        $duration = $meeting->start_at->diffInMinutes($meeting->end_at);
+                                    } elseif (!is_null($meeting->duration_minutes)) {
+                                        $duration = $meeting->duration_minutes;
+                                    }
+                                @endphp
                                 <span class="badge-modern badge-modern-secondary">
-                                    {{ $meeting->duration_minutes ?? 0 }} min
+                                    {{ $duration }} min
                                 </span>
                             </td>
 

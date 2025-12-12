@@ -63,20 +63,33 @@
                 </div>
             </div>
 
-            <div class="row g-3 mt-2">
-                <div class="col-md-6">
-                    <label class="form-label">Nouveau mot de passe</label>
-                    <input type="password" name="password" class="form-control @error('password') is-invalid @enderror">
-                    <div class="form-text">Laissez vide pour ne pas modifier</div>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+            {{-- Changement de mot de passe : uniquement par l'utilisateur lui-même --}}
+            @if(auth()->id() === $user->id)
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Nouveau mot de passe</label>
+                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror">
+                        <div class="form-text">Laissez vide pour ne pas modifier</div>
+                        @error('password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Confirmer le mot de passe</label>
+                        <input type="password" name="password_confirmation" class="form-control">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Confirmer le mot de passe</label>
-                    <input type="password" name="password_confirmation" class="form-control">
+            @else
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <div class="alert alert-info small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Le mot de passe de cet utilisateur ne peut pas être modifié depuis cet écran.
+                            Utilisez la procédure de réinitialisation par e-mail ou laissez l'utilisateur modifier son mot de passe depuis son propre profil.
+                        </div>
+                    </div>
                 </div>
-            </div>
+            @endif
 
             <div class="row g-3 mt-2">
                 <div class="col-md-6">
@@ -105,7 +118,7 @@
 
             @if($canManageRoles)
                 <div class="row g-3 mt-2">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Rôles</label>
                         <select name="roles[]" class="form-select @error('roles') is-invalid @enderror" multiple>
                             @foreach($roles as $role)
@@ -118,7 +131,7 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Permissions directes</label>
                         <select name="permissions[]" class="form-select @error('permissions') is-invalid @enderror" multiple>
                             @foreach($permissions as $permission)
@@ -128,6 +141,21 @@
                             @endforeach
                         </select>
                         @error('permissions')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Statut du compte</label>
+                        @php
+                            $currentStatus = old('status', $user->status ?? ($user->is_active ? 'active' : 'inactive'));
+                        @endphp
+                        <select name="status" class="form-select @error('status') is-invalid @enderror">
+                            <option value="active" @selected($currentStatus === 'active')>Actif</option>
+                            <option value="inactive" @selected($currentStatus === 'inactive')>Inactif</option>
+                            <option value="pending" @selected($currentStatus === 'pending')>En attente de validation</option>
+                            <option value="rejected" @selected($currentStatus === 'rejected')>Rejeté</option>
+                        </select>
+                        @error('status')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>

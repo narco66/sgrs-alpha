@@ -142,6 +142,16 @@ class DocumentController extends Controller
             $documentType = 'autre';
         }
 
+        $uploader = Auth::user();
+
+        // Déterminer si l'uploadeur est habilité à intégrer directement un document sans validation
+        $isPrivilegedUploader = $uploader && (
+            $uploader->hasAnyRole(['drhmg', 'dsi', 'sg', 'admin', 'super-admin'])
+            || $uploader->can('documents.auto_approve')
+            || $uploader->can('documents.manage')
+            || $uploader->can('documents.validate')
+        );
+
         $doc = Document::create([
             'title'            => $request->input('title'),
             'description'      => $request->input('description'),
@@ -172,17 +182,25 @@ class DocumentController extends Controller
             'created_by' => Auth::id(),
         ]);
 
-        // Si le type de document nécessite une validation, créer les validations
-        if ($doc->type && $doc->type->requires_validation) {
+        // Si le type de document nécessite une validation, créer les validations,
+        // sinon marquer directement comme approuvé. Les uploadeurs habilités
+        // (DRHMG, DSI, SG, Admin, Super-Admin, ou permissions équivalentes)
+        // voient leurs documents approuvés immédiatement.
+        $requiresValidation = $doc->type && $doc->type->requires_validation;
+
+        if ($requiresValidation && ! $isPrivilegedUploader) {
             $levels = ['protocole', 'sg', 'president'];
             foreach ($levels as $level) {
                 DocumentValidation::create([
-                    'document_id' => $doc->id,
+                    'document_id'      => $doc->id,
                     'validation_level' => $level,
-                    'status' => 'pending',
+                    'status'           => 'pending',
                 ]);
             }
             $doc->update(['validation_status' => 'pending']);
+        } else {
+            // Pas de validation requise ou uploadeur habilité : le document est immédiatement utilisable
+            $doc->update(['validation_status' => 'approved']);
         }
 
         // EF40 / EF41 : notifier la soumission d'un document

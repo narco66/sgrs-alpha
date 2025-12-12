@@ -132,18 +132,18 @@ class MeetingController extends Controller
         
         $data = $request->validated();
 
-        // Construire les timestamps à partir de date + time si start_at/end_at ne sont pas fournis
-        $durationMinutes = isset($data['duration_minutes'])
-            ? (int) $data['duration_minutes']
-            : 60;
+        // Construire les timestamps à partir de date/heure de début et fin.
+        // Une réunion peut s'étendre sur plusieurs jours : on ne limite plus la durée à 24h.
+        $startAt = Carbon::parse(($data['date'] ?? now()->toDateString()) . ' ' . ($data['time'] ?? '00:00'));
+        $endAt   = Carbon::parse(($data['end_date'] ?? $data['date'] ?? now()->toDateString()) . ' ' . ($data['end_time'] ?? $data['time'] ?? '00:00'));
 
-        $startAt = !empty($data['start_at'])
-            ? Carbon::parse($data['start_at'])
-            : Carbon::parse(($data['date'] ?? now()->toDateString()) . ' ' . ($data['time'] ?? '00:00'));
+        if ($endAt->lessThanOrEqualTo($startAt)) {
+            return back()
+                ->withInput()
+                ->withErrors(['end_date' => 'La date et l\'heure de fin doivent être postérieures au début de la réunion.']);
+        }
 
-        $endAt = !empty($data['end_at'])
-            ? Carbon::parse($data['end_at'])
-            : $startAt->copy()->addMinutes($durationMinutes);
+        $durationMinutes = $startAt->diffInMinutes($endAt);
 
         // Vérifier la disponibilité de la salle si une salle est sélectionnée
         if (!empty($data['room_id'])) {
@@ -161,8 +161,8 @@ class MeetingController extends Controller
             'committee_id'            => $data['committee_id'] ?? null,
             'room_id'                 => $data['room_id'] ?? null,
             'start_at'                => $startAt,
-            'end_at'                  => $data['end_at'] ?? $endAt,
-            'duration_minutes'        => $data['duration_minutes'] ?? null,
+            'end_at'                  => $endAt,
+            'duration_minutes'        => $durationMinutes,
             'status'                  => $data['status'] ?? MeetingStatus::DRAFT->value,
             'configuration'           => $data['configuration'] ?? 'presentiel',
             'host_country'            => $data['host_country'] ?? null,
@@ -275,6 +275,9 @@ class MeetingController extends Controller
             'termsOfReference', // Cahier des charges
         ]);
 
+        // Ne conserver que les documents validés pour l'affichage dans le contexte de la réunion
+        $this->filterApprovedDocuments($meeting);
+
         // Alias pour que la vue puisse utiliser $meeting->creator
         // tout en conservant la relation organizer() dans le modèle.
         $meeting->setRelation('creator', $meeting->organizer);
@@ -369,18 +372,26 @@ class MeetingController extends Controller
         
         $data = $request->validated();
 
-        // Construire les timestamps à partir de date + time si start_at/end_at ne sont pas fournis
-        $durationMinutes = isset($data['duration_minutes'])
-            ? (int) $data['duration_minutes']
-            : ($meeting->duration_minutes ?? 60);
+        // Construire les timestamps à partir de date/heure de début et fin (multi‑jours possible).
+        $startAt = Carbon::parse(
+            ($data['date'] ?? $meeting->start_at?->format('Y-m-d') ?? now()->toDateString())
+            . ' '
+            . ($data['time'] ?? $meeting->start_at?->format('H:i') ?? '00:00')
+        );
 
-        $startAt = !empty($data['start_at'])
-            ? Carbon::parse($data['start_at'])
-            : Carbon::parse(($data['date'] ?? $meeting->start_at?->format('Y-m-d') ?? now()->toDateString()) . ' ' . ($data['time'] ?? $meeting->start_at?->format('H:i') ?? '00:00'));
+        $endAt = Carbon::parse(
+            ($data['end_date'] ?? $meeting->end_at?->format('Y-m-d') ?? $meeting->start_at?->format('Y-m-d') ?? now()->toDateString())
+            . ' '
+            . ($data['end_time'] ?? $meeting->end_at?->format('H:i') ?? $meeting->start_at?->format('H:i') ?? '00:00')
+        );
 
-        $endAt = !empty($data['end_at'])
-            ? Carbon::parse($data['end_at'])
-            : $startAt->copy()->addMinutes($durationMinutes);
+        if ($endAt->lessThanOrEqualTo($startAt)) {
+            return back()
+                ->withInput()
+                ->withErrors(['end_date' => 'La date et l\'heure de fin doivent être postérieures au début de la réunion.']);
+        }
+
+        $durationMinutes = $startAt->diffInMinutes($endAt);
 
         // Vérifier la disponibilité de la salle si une salle est sélectionnée et que la date/heure change
         if (!empty($data['room_id']) && ($data['room_id'] != $meeting->room_id || !$meeting->start_at || $startAt->format('Y-m-d H:i') != $meeting->start_at->format('Y-m-d H:i'))) {
@@ -399,7 +410,7 @@ class MeetingController extends Controller
             'room_id'                 => $data['room_id'] ?? null,
             'start_at'                => $startAt,
             'end_at'                  => $endAt,
-            'duration_minutes'        => $data['duration_minutes'] ?? null,
+            'duration_minutes'        => $durationMinutes,
             'status'                  => $data['status'] ?? $meeting->status,
             'configuration'           => $data['configuration'] ?? $meeting->configuration ?? 'presentiel',
             'host_country'            => $data['host_country'] ?? $meeting->host_country,
@@ -674,6 +685,8 @@ class MeetingController extends Controller
             'organizationCommittee.members.user',
         ]);
 
+        $this->filterApprovedDocuments($meeting);
+
         // Fusionner les participants pour �viter les doublons entre l'ancienne et la nouvelle mod��lisation.
         $participants = collect()
             ->concat($meeting->participants->pluck('user'))
@@ -697,7 +710,9 @@ class MeetingController extends Controller
     {
         $this->authorize('view', $meeting);
 
-        $meeting->load(['meetingType', 'room', 'organizer']);
+        $meeting->load(['meetingType', 'room', 'organizer', 'documents.type']);
+
+        $this->filterApprovedDocuments($meeting);
 
         $pdf = Pdf::loadView('meetings.pdf-invitation', [
             'meeting' => $meeting,
@@ -724,6 +739,8 @@ class MeetingController extends Controller
             'organizationCommittee.members.user',
         ]);
 
+        $this->filterApprovedDocuments($meeting);
+
         $pdf = Pdf::loadView('meetings.pdf-attendance', [
             'meeting' => $meeting,
         ])->setPaper('A4', 'portrait');
@@ -749,6 +766,8 @@ class MeetingController extends Controller
             'documents.type',
         ]);
 
+        $this->filterApprovedDocuments($meeting);
+
         $pdf = Pdf::loadView('meetings.pdf-minutes', [
             'meeting' => $meeting,
         ])->setPaper('A4', 'portrait');
@@ -773,6 +792,8 @@ class MeetingController extends Controller
             'documents.type',
         ]);
 
+        $this->filterApprovedDocuments($meeting);
+
         $pdf = Pdf::loadView('meetings.pdf-logistics', [
             'meeting' => $meeting,
         ])->setPaper('A4', 'portrait');
@@ -795,6 +816,9 @@ class MeetingController extends Controller
             'documents.type',
         ]);
 
+        $this->filterApprovedDocuments($meeting);
+
+
         $pdf = Pdf::loadView('meetings.pdf-agenda', [
             'meeting' => $meeting,
         ])->setPaper('A4', 'portrait');
@@ -802,6 +826,22 @@ class MeetingController extends Controller
         $fileName = 'ordre-du-jour-' . ($meeting->slug ?? $meeting->id) . '.pdf';
 
         return $pdf->download($fileName);
+    }
+
+    /**
+     * Ne garder que les documents validés dans le contexte de la réunion.
+     * Un document est considéré comme "pris en compte" s'il est en statut
+     * global "approved" (docs validés par DRHMG / DSI / SG / Admin, ou
+     * ajoutés directement par un utilisateur habilité).
+     */
+    protected function filterApprovedDocuments(Meeting $meeting): void
+    {
+        if ($meeting->relationLoaded('documents')) {
+            $approved = $meeting->documents->filter(function ($doc) {
+                return ($doc->validation_status ?? null) === 'approved';
+            });
+            $meeting->setRelation('documents', $approved->values());
+        }
     }
 
     /**

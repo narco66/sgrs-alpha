@@ -12,6 +12,7 @@ use App\Events\MeetingUpdated;
 use App\Events\ParticipantRsvpUpdated;
 use App\Events\UserCreated;
 use App\Events\UserUpdated;
+use App\Events\UserSelfRegistered;
 use App\Services\AuditLogger;
 use App\Models\Document;
 use App\Models\DocumentValidation;
@@ -27,6 +28,14 @@ use App\Notifications\MeetingReminderNotification;
 use App\Notifications\ParticipantResponseReminderNotification;
 use App\Notifications\UserCreatedNotification;
 use App\Notifications\UserUpdatedNotification;
+use App\Notifications\UserPendingApprovalNotification;
+use App\Notifications\UserRegistrationReceivedNotification;
+use App\Notifications\UserAccountApprovedNotification;
+use App\Notifications\UserAccountRejectedNotification;
+use App\Events\UserApproved;
+use App\Events\UserRejected;
+use App\Notifications\UserAccountApprovedAdminNotification;
+use App\Notifications\NewUserPendingValidation;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -48,6 +57,9 @@ class NotificationService
             match (true) {
                 $event instanceof UserCreated              => $this->onUserCreated($event),
                 $event instanceof UserUpdated              => $this->onUserUpdated($event),
+                $event instanceof UserSelfRegistered       => $this->onUserSelfRegistered($event),
+                $event instanceof UserApproved             => $this->onUserApproved($event),
+                $event instanceof UserRejected             => $this->onUserRejected($event),
                 $event instanceof MeetingCreated           => $this->onMeetingCreated($event),
                 $event instanceof MeetingUpdated           => $this->onMeetingUpdated($event),
                 $event instanceof MeetingCancelled         => $this->onMeetingCancelled($event),
@@ -92,6 +104,34 @@ class NotificationService
         ]);
     }
 
+    /**
+     * Inscription front-office d'un utilisateur (auto-inscription).
+     *
+     * - Le compte est créé en statut « en attente » (is_active = false)
+     * - Tous les administrateurs sont notifiés pour valider / rejeter la demande
+     * - L'utilisateur reçoit un accusé de réception
+     * - Un log d'audit spécifique est écrit
+     */
+    protected function onUserSelfRegistered(UserSelfRegistered $event): void
+    {
+        $user = $event->user;
+
+        // Notifier tous les rôles d'administration
+        $adminRecipients = User::role(['super-admin', 'admin', 'dsi'])->get();
+        foreach ($adminRecipients as $recipient) {
+            // Notification interne pour la cloche + notification email existante si souhaitée
+            $recipient->notify(new NewUserPendingValidation($user));
+            $recipient->notify(new UserPendingApprovalNotification($user));
+        }
+
+        // Accusé de réception à l'utilisateur
+        $user->notify(new UserRegistrationReceivedNotification($user));
+
+        $this->logNotification('user_registration_requested', [
+            'user_id' => $user->id,
+        ]);
+    }
+
     protected function onUserUpdated(UserUpdated $event): void
     {
         $user  = $event->user;
@@ -105,6 +145,47 @@ class NotificationService
         $this->logNotification('user_updated', [
             'user_id'  => $user->id,
             'actor_id' => $actor?->id,
+        ]);
+    }
+
+    /**
+     * Validation d'un compte utilisateur par un administrateur.
+     */
+    protected function onUserApproved(UserApproved $event): void
+    {
+        $user  = $event->user;
+        $actor = $event->actor;
+
+        // Notification à l'utilisateur validé
+        $user->notify(new UserAccountApprovedNotification($user));
+
+        // Récapitulatif pour l'administrateur ayant validé
+        if ($actor instanceof User) {
+            $actor->notify(new UserAccountApprovedAdminNotification($user, $actor));
+        }
+
+        $this->logNotification('user_account_approved', [
+            'user_id'  => $user->id,
+            'actor_id' => $actor?->id,
+        ]);
+    }
+
+    /**
+     * Rejet d'un compte utilisateur par un administrateur.
+     */
+    protected function onUserRejected(UserRejected $event): void
+    {
+        $user   = $event->user;
+        $actor  = $event->actor;
+        $reason = $event->reason;
+
+        // Notification à l'utilisateur rejeté
+        $user->notify(new UserAccountRejectedNotification($user, $reason));
+
+        $this->logNotification('user_account_rejected', [
+            'user_id'  => $user->id,
+            'actor_id' => $actor?->id,
+            'reason'   => $reason,
         ]);
     }
 

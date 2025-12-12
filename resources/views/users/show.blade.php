@@ -9,11 +9,15 @@
         </p>
     </div>
     <div class="btn-group">
-        @can('update', $user)
-        <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil me-1"></i> Modifier
-        </a>
-        @endcan
+        @php
+            $canAdminUsers = auth()->user()->hasAnyRole(['super-admin', 'admin', 'dsi'])
+                || auth()->user()->can('users.manage');
+        @endphp
+        @if($canAdminUsers)
+            <a href="{{ route('users.edit', $user) }}" class="btn btn-outline-primary">
+                <i class="bi bi-pencil me-1"></i> Modifier
+            </a>
+        @endif
         <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
             Retour à la liste
         </a>
@@ -32,20 +36,42 @@
                     <p class="text-muted mb-2">{{ $user->first_name }} {{ $user->last_name }}</p>
                 @endif
                 <p class="text-muted mb-3">{{ $user->email }}</p>
-                
-                @if($user->is_active)
+
+                @php
+                    $status = $user->status ?? ($user->is_active ? 'active' : 'inactive');
+                @endphp
+
+                @if($status === 'active')
                     <span class="badge bg-success mb-3">Compte actif</span>
+                @elseif($status === 'pending')
+                    <span class="badge bg-warning text-dark mb-3">Compte en attente de validation</span>
+                @elseif($status === 'rejected')
+                    <span class="badge bg-danger mb-3">Compte rejeté</span>
                 @else
-                    <span class="badge bg-danger mb-3">Compte inactif</span>
+                    <span class="badge bg-secondary mb-3">Compte inactif</span>
                 @endif
 
                 @can('toggleActive', $user)
-                <form method="POST" action="{{ route('users.toggle-active', $user) }}" class="mt-3">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-outline-{{ $user->is_active ? 'danger' : 'success' }}">
-                        {{ $user->is_active ? 'Désactiver' : 'Activer' }} le compte
-                    </button>
-                </form>
+                    @if($status === 'pending')
+                        {{-- Actions spécifiques pour les comptes en attente --}}
+                        <form method="POST" action="{{ route('users.approve', $user) }}" class="mt-3 d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Valider le compte
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-3" data-bs-toggle="modal" data-bs-target="#rejectUserModal">
+                            <i class="bi bi-x-circle me-1"></i> Rejeter le compte
+                        </button>
+                    @else
+                        {{-- Bascule simple actif / inactif pour les comptes existants --}}
+                        <form method="POST" action="{{ route('users.toggle-active', $user) }}" class="mt-3">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-{{ $user->is_active ? 'danger' : 'success' }}">
+                                {{ $user->is_active ? 'Désactiver' : 'Activer' }} le compte
+                            </button>
+                        </form>
+                    @endif
                 @endcan
             </div>
         </div>
@@ -53,7 +79,7 @@
 
     <div class="col-md-8">
         <div class="card shadow-sm border-0 mb-3">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Informations personnelles</h6>
             </div>
             <div class="card-body">
@@ -92,6 +118,69 @@
                 </dl>
             </div>
         </div>
+
+        @if(isset($statusLogs) && $statusLogs->count() > 0)
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Historique du statut du compte</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    @foreach($statusLogs as $log)
+                        @php
+                            $oldStatus = $log->old_values['status'] ?? null;
+                            $newStatus = $log->new_values['status'] ?? null;
+
+                            $formatStatus = function (?string $s) {
+                                return match($s) {
+                                    'active'   => 'actif',
+                                    'inactive' => 'inactif',
+                                    'pending'  => 'en attente',
+                                    'rejected' => 'rejeté',
+                                    default    => $s ?? 'inconnu',
+                                };
+                            };
+
+                            $label = match($log->event) {
+                                'user_registration_requested' => 'Demande de création de compte',
+                                'user_account_approved'       => 'Compte validé',
+                                'user_account_rejected'       => 'Compte rejeté',
+                                'created'                     => 'Création du compte',
+                                'updated'                     => 'Mise à jour du compte',
+                                default                       => ucfirst(str_replace('_', ' ', $log->event)),
+                            };
+                        @endphp
+                        <div class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="me-3">
+                                <div class="fw-semibold">{{ $label }}</div>
+                                <div class="small text-muted">
+                                    @if($oldStatus || $newStatus)
+                                        @if($oldStatus && $newStatus)
+                                            Statut : {{ $formatStatus($oldStatus) }} → {{ $formatStatus($newStatus) }}
+                                        @elseif($newStatus)
+                                            Nouveau statut : {{ $formatStatus($newStatus) }}
+                                        @else
+                                            Ancien statut : {{ $formatStatus($oldStatus) }}
+                                        @endif
+                                    @else
+                                        Détail indisponible.
+                                    @endif
+                                </div>
+                                @if($log->user)
+                                    <div class="small text-muted">
+                                        Par : {{ $log->user->name }} ({{ $log->user->email }})
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="text-end small text-muted">
+                                {{ $log->created_at?->format('d/m/Y H:i') }}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
 
         @if($user->organizedMeetings->count() > 0)
         <div class="card shadow-sm border-0 mb-3">
@@ -154,5 +243,53 @@
         @endif
     </div>
 </div>
-@endsection
 
+@can('toggleActive', $user)
+    {{-- Modal de rejet avec saisie du motif --}}
+    <div class="modal fade" id="rejectUserModal" tabindex="-1" aria-labelledby="rejectUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectUserModalLabel">
+                        <i class="bi bi-x-circle me-1 text-danger"></i>
+                        Rejeter le compte utilisateur
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="POST" action="{{ route('users.reject', $user) }}">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="mb-3">
+                            Vous êtes sur le point de rejeter la demande de création de compte de
+                            <strong>{{ $user->name }}</strong> ({{ $user->email }}).
+                        </p>
+                        <div class="mb-3">
+                            <label for="reject-reason" class="form-label">Motif du rejet (optionnel)</label>
+                            <textarea
+                                id="reject-reason"
+                                name="reason"
+                                class="form-control"
+                                rows="4"
+                                placeholder="Exemple : Informations incomplètes, compte déjà existant, etc."
+                            ></textarea>
+                            <div class="form-text">
+                                Ce motif pourra être communiqué à l'utilisateur dans l'e-mail de notification.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Annuler
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle me-1"></i>
+                            Confirmer le rejet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endcan
+
+@endsection

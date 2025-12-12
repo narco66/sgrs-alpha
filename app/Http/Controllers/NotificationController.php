@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Notifications\DatabaseNotification;
+use App\Services\AuditLogger;
 
 class NotificationController extends Controller
 {
@@ -60,6 +62,19 @@ class NotificationController extends Controller
         if (Auth::id() === $notification->notifiable_id) {
             $notification->markAsRead();
 
+            // Audit : consultation d'une notification
+            AuditLogger::log(
+                event: 'notification_read',
+                target: null,
+                old: null,
+                new: null,
+                meta: [
+                    'notification_id' => $notification->id,
+                    'type'            => $notification->type,
+                    'user_id'         => Auth::id(),
+                ]
+            );
+
             return response()->json(['status' => 'success']);
         }
 
@@ -74,7 +89,18 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
-        Auth::user()->unreadNotifications->markAsRead();
+        $user = Auth::user();
+        $user->unreadNotifications->markAsRead();
+
+        AuditLogger::log(
+            event: 'notifications_mark_all_read',
+            target: null,
+            old: null,
+            new: null,
+            meta: [
+                'user_id' => $user->id,
+            ]
+        );
 
         return redirect()
             ->route('notifications.index')
@@ -96,5 +122,45 @@ class NotificationController extends Controller
             'status'  => 'error',
             'message' => 'Action non autorisée.',
         ], 403);
+    }
+
+    /**
+     * Endpoint JSON pour le rafraîchissement quasi temps réel de la cloche.
+     */
+    public function poll(): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json([
+                'count' => 0,
+                'notifications' => [],
+            ], 401);
+        }
+
+        $unread = $user->unreadNotifications()
+            ->orderByDesc('created_at')
+            ->take(10)
+            ->get();
+
+        $notifications = $unread->map(function (DatabaseNotification $notification) {
+            $data = $notification->data ?? [];
+            $type = $data['type'] ?? class_basename($notification->type);
+
+            return [
+                'id'               => $notification->id,
+                'type'             => $type,
+                'message'          => $data['message'] ?? 'Notification',
+                'user_name'        => $data['user_name'] ?? null,
+                'user_email'       => $data['user_email'] ?? null,
+                'url'              => $data['url'] ?? null,
+                'created_at_human' => optional($notification->created_at)->diffForHumans(),
+            ];
+        });
+
+        return response()->json([
+            'count'         => $user->unreadNotifications()->count(),
+            'notifications' => $notifications,
+        ]);
     }
 }

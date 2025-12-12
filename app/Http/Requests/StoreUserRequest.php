@@ -28,6 +28,7 @@ class StoreUserRequest extends FormRequest
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['exists:permissions,id'],
             'is_active' => ['nullable', 'boolean'],
+            'status' => ['nullable', 'string', 'max:50'],
             'email_verified_at' => ['nullable', 'date'],
         ];
     }

@@ -83,14 +83,33 @@
                             {{-- Type de réunion et Comité --}}
                             <div class="col-md-6">
                                 <label class="form-label">Type de réunion <span class="text-danger">*</span></label>
-                                <select name="meeting_type_id" class="form-select @error('meeting_type_id') is-invalid @enderror" required>
-                                    <option value="">Sélectionner un type</option>
-                                    @foreach($meetingTypes as $type)
-                                        <option value="{{ $type->id }}" @selected(old('meeting_type_id') == $type->id)>
-                                            {{ $type->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="input-group">
+                                    <select name="meeting_type_id"
+                                            id="meeting_type_id"
+                                            class="form-select @error('meeting_type_id') is-invalid @enderror"
+                                            required
+                                            @if(auth()->user()->can('meeting_types.create')) ondblclick="window.quickCreateMeetingType && window.quickCreateMeetingType();" @endif>
+                                        <option value="">Sélectionner un type</option>
+                                        @foreach($meetingTypes as $type)
+                                            <option value="{{ $type->id }}" @selected(old('meeting_type_id') == $type->id)>
+                                                {{ $type->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @if(auth()->user()->can('meeting_types.create'))
+                                        <button type="button"
+                                                class="btn btn-outline-primary"
+                                                id="btnQuickCreateMeetingType"
+                                                title="Créer un nouveau type de réunion">
+                                            <i class="bi bi-plus-circle"></i>
+                                        </button>
+                                    @endif
+                                </div>
+                                <small class="form-text text-muted">
+                                    @if(auth()->user()->can('meeting_types.create'))
+                                        Double-cliquez sur la liste ou utilisez le bouton + pour ajouter un nouveau type sans quitter ce formulaire.
+                                    @endif
+                                </small>
                                 @error('meeting_type_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -98,22 +117,40 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Comité</label>
-                                <select name="committee_id" class="form-select @error('committee_id') is-invalid @enderror">
-                                    <option value="">Aucun comité</option>
-                                    @foreach($committees as $committee)
-                                        <option value="{{ $committee->id }}" @selected(old('committee_id') == $committee->id)>
-                                            {{ $committee->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="input-group">
+                                    <select name="committee_id"
+                                            id="committee_id"
+                                            class="form-select @error('committee_id') is-invalid @enderror"
+                                            @if(auth()->user()->can('committees.create')) ondblclick="window.quickCreateCommittee && window.quickCreateCommittee();" @endif>
+                                        <option value="">Aucun comité</option>
+                                        @foreach($committees as $committee)
+                                            <option value="{{ $committee->id }}" @selected(old('committee_id') == $committee->id)>
+                                                {{ $committee->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @if(auth()->user()->can('committees.create'))
+                                        <button type="button"
+                                                class="btn btn-outline-primary"
+                                                id="btnQuickCreateCommittee"
+                                                title="Créer un nouveau comité">
+                                            <i class="bi bi-plus-circle"></i>
+                                        </button>
+                                    @endif
+                                </div>
+                                <small class="form-text text-muted">
+                                    @if(auth()->user()->can('committees.create'))
+                                        Double-cliquez sur la liste ou utilisez le bouton + pour créer un nouveau comité.
+                                    @endif
+                                </small>
                                 @error('committee_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            {{-- Date et Heure --}}
-                            <div class="col-md-4">
-                                <label class="form-label">Date <span class="text-danger">*</span></label>
+                            {{-- Date et heure de début --}}
+                            <div class="col-md-3">
+                                <label class="form-label">Date de début <span class="text-danger">*</span></label>
                                 <input type="date"
                                        name="date"
                                        class="form-control @error('date') is-invalid @enderror"
@@ -124,8 +161,8 @@
                                 @enderror
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Heure <span class="text-danger">*</span></label>
+                            <div class="col-md-3">
+                                <label class="form-label">Heure de début <span class="text-danger">*</span></label>
                                 <input type="time"
                                        name="time"
                                        class="form-control @error('time') is-invalid @enderror"
@@ -136,16 +173,27 @@
                                 @enderror
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Durée <span class="text-danger">*</span></label>
-                                <select name="duration_minutes" class="form-select @error('duration_minutes') is-invalid @enderror" required>
-                                    @foreach([30, 60, 90, 120, 180, 240] as $minutes)
-                                        <option value="{{ $minutes }}" @selected(old('duration_minutes', 60) == $minutes)>
-                                            {{ $minutes }} minutes
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('duration_minutes')
+                            {{-- Date et heure de fin --}}
+                            <div class="col-md-3">
+                                <label class="form-label">Date de fin <span class="text-danger">*</span></label>
+                                <input type="date"
+                                       name="end_date"
+                                       class="form-control @error('end_date') is-invalid @enderror"
+                                       value="{{ old('end_date', now()->format('Y-m-d')) }}"
+                                       required>
+                                @error('end_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Heure de fin <span class="text-danger">*</span></label>
+                                <input type="time"
+                                       name="end_time"
+                                       class="form-control @error('end_time') is-invalid @enderror"
+                                       value="{{ old('end_time') }}"
+                                       required>
+                                @error('end_time')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -153,7 +201,10 @@
                             {{-- Configuration, pays hôte et Salle --}}
                             <div class="col-md-6">
                                 <label class="form-label">Configuration <span class="text-danger">*</span></label>
-                                <select name="configuration" class="form-select @error('configuration') is-invalid @enderror" required>
+                                <select name="configuration"
+                                        id="configuration"
+                                        class="form-select @error('configuration') is-invalid @enderror"
+                                        required>
                                     <option value="presentiel" @selected(old('configuration') === 'presentiel')>Présentiel</option>
                                     <option value="hybride" @selected(old('configuration') === 'hybride')>Hybride</option>
                                     <option value="visioconference" @selected(old('configuration') === 'visioconference')>Visioconférence</option>
@@ -178,14 +229,32 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">Salle de réunion</label>
-                                <select name="room_id" class="form-select @error('room_id') is-invalid @enderror">
-                                    <option value="">Sélectionner une salle (optionnel)</option>
-                                    @foreach($rooms as $room)
-                                        <option value="{{ $room->id }}" @selected(old('room_id') == $room->id)>
-                                            {{ $room->name }} @if($room->capacity) ({{ $room->capacity }} places) @endif
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="input-group">
+                                    <select name="room_id"
+                                            id="room_id"
+                                            class="form-select @error('room_id') is-invalid @enderror"
+                                            @if(auth()->user()->can('create', \App\Models\Room::class)) ondblclick="window.quickCreateRoom && window.quickCreateRoom();" @endif>
+                                        <option value="">Sélectionner une salle (optionnel)</option>
+                                        @foreach($rooms as $room)
+                                            <option value="{{ $room->id }}" @selected(old('room_id') == $room->id)>
+                                                {{ $room->name }} @if($room->capacity) ({{ $room->capacity }} places) @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @can('create', \App\Models\Room::class)
+                                        <button type="button"
+                                                class="btn btn-outline-primary"
+                                                id="btnQuickCreateRoom"
+                                                title="Créer une nouvelle salle de réunion">
+                                            <i class="bi bi-plus-circle"></i>
+                                        </button>
+                                    @endcan
+                                </div>
+                                <small class="form-text text-muted">
+                                    @can('create', \App\Models\Room::class)
+                                        Double-cliquez sur la liste ou utilisez le bouton + pour créer rapidement une salle.
+                                    @endcan
+                                </small>
                                 @error('room_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -706,6 +775,152 @@
     </form>
 </div>
 
+{{-- Modales de création rapide (types, comités, salles) --}}
+@if(auth()->user()->can('meeting_types.create'))
+    <div class="modal fade" id="quickCreateMeetingTypeModal" tabindex="-1" aria-labelledby="quickCreateMeetingTypeLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="quickMeetingTypeForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="quickCreateMeetingTypeLabel">
+                            <i class="bi bi-plus-circle me-1"></i> Nouveau type de réunion
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nom du type <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Code <span class="text-danger">*</span></label>
+                            <input type="text" name="code" class="form-control" maxlength="10" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="quick_type_is_active" value="1" checked>
+                            <label class="form-check-label" for="quick_type_is_active">
+                                Activer ce type de réunion
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            Les options avancées (couleur, validation, ordre) peuvent être ajustées plus tard dans le module des types de réunion.
+                        </small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
+
+@if(auth()->user()->can('committees.create'))
+    <div class="modal fade" id="quickCreateCommitteeModal" tabindex="-1" aria-labelledby="quickCreateCommitteeLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="quickCommitteeForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="quickCreateCommitteeLabel">
+                            <i class="bi bi-plus-circle me-1"></i> Nouveau comité
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nom du comité <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Code <span class="text-danger">*</span></label>
+                            <input type="text" name="code" class="form-control" maxlength="20" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Type de réunion associé</label>
+                            <select name="meeting_type_id" class="form-select">
+                                <option value="">Aucun</option>
+                                @foreach($meetingTypes as $type)
+                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="quick_committee_is_active" value="1" checked>
+                            <label class="form-check-label" for="quick_committee_is_active">
+                                Activer ce comité
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
+
+@can('create', \App\Models\Room::class)
+    <div class="modal fade" id="quickCreateRoomModal" tabindex="-1" aria-labelledby="quickCreateRoomLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="quickRoomForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="quickCreateRoomLabel">
+                            <i class="bi bi-plus-circle me-1"></i> Nouvelle salle de réunion
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nom de la salle <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Code <span class="text-danger">*</span></label>
+                            <input type="text" name="code" class="form-control" maxlength="50" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Capacité (nombre de places) <span class="text-danger">*</span></label>
+                            <input type="number" name="capacity" class="form-control" min="1" max="1000" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Localisation</label>
+                            <input type="text" name="location" class="form-control">
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="quick_room_is_active" value="1" checked>
+                            <label class="form-check-label" for="quick_room_is_active">
+                                Activer cette salle
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endcan
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -846,16 +1061,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
                 errorMessage = 'Le nom du nouveau comité d\'organisation est obligatoire.';
                 errorTab = 'committee';
-            }
-        }
-
-        // Validation onglet cahier des charges
-        if (isValid && createTermsCheckbox && createTermsCheckbox.checked) {
-            const hostCountry = document.querySelector('input[name="terms_host_country"]');
-            if (hostCountry && !hostCountry.value.trim()) {
-                isValid = false;
-                errorMessage = 'Le pays hôte est obligatoire pour créer un cahier des charges.';
-                errorTab = 'terms';
             }
         }
 
@@ -1002,6 +1207,155 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         @endif
     @endif
+
+    // -------- Création rapide : Types de réunion, Comités, Salles --------
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
+    // Helper générique pour POST JSON
+    async function postJson(url, formEl) {
+        const formData = new FormData(formEl);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+            body: formData,
+        });
+        if (!response.ok) {
+            let message = 'Erreur lors de l\'enregistrement.';
+            try {
+                const data = await response.json();
+                if (data.message) {
+                    message = data.message;
+                }
+            } catch (e) {}
+            throw new Error(message);
+        }
+        return await response.json();
+    }
+
+    // ---- Type de réunion ----
+    @if(auth()->user()->can('meeting_types.create'))
+    (function() {
+        const typeSelect = document.getElementById('meeting_type_id');
+        const btn = document.getElementById('btnQuickCreateMeetingType');
+        const modalEl = document.getElementById('quickCreateMeetingTypeModal');
+        const formQuick = document.getElementById('quickMeetingTypeForm');
+        if (!modalEl || !formQuick || !typeSelect) return;
+        const modal = new bootstrap.Modal(modalEl);
+
+        window.quickCreateMeetingType = function() {
+            formQuick.reset();
+            modal.show();
+        };
+
+        if (btn) {
+            btn.addEventListener('click', function() {
+                window.quickCreateMeetingType();
+            });
+        }
+
+        formQuick.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            try {
+                const data = await postJson('{{ route('meeting-types.store') }}', formQuick);
+                if (data && data.id && data.name) {
+                    const option = new Option(data.name, data.id, true, true);
+                    typeSelect.add(option);
+                    typeSelect.value = data.id;
+                }
+                modal.hide();
+            } catch (error) {
+                alert(error.message || 'Erreur lors de la création du type de réunion.');
+            }
+        });
+    })();
+    @endif
+
+    // ---- Comité ----
+    @if(auth()->user()->can('committees.create'))
+    (function() {
+        const committeeSelect = document.getElementById('committee_id');
+        const btn = document.getElementById('btnQuickCreateCommittee');
+        const modalEl = document.getElementById('quickCreateCommitteeModal');
+        const formQuick = document.getElementById('quickCommitteeForm');
+        if (!modalEl || !formQuick || !committeeSelect) return;
+        const modal = new bootstrap.Modal(modalEl);
+
+        window.quickCreateCommittee = function() {
+            formQuick.reset();
+            // Pré-sélectionner le type de réunion actuel dans le formulaire rapide si possible
+            const mainTypeSelect = document.getElementById('meeting_type_id');
+            const quickTypeSelect = formQuick.querySelector('select[name="meeting_type_id"]');
+            if (mainTypeSelect && quickTypeSelect) {
+                quickTypeSelect.value = mainTypeSelect.value || '';
+            }
+            modal.show();
+        };
+
+        if (btn) {
+            btn.addEventListener('click', function() {
+                window.quickCreateCommittee();
+            });
+        }
+
+        formQuick.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            try {
+                const data = await postJson('{{ route('committees.store') }}', formQuick);
+                if (data && data.id && data.name) {
+                    const option = new Option(data.name, data.id, true, true);
+                    committeeSelect.add(option);
+                    committeeSelect.value = data.id;
+                }
+                modal.hide();
+            } catch (error) {
+                alert(error.message || 'Erreur lors de la création du comité.');
+            }
+        });
+    })();
+    @endif
+
+    // ---- Salle de réunion ----
+    @can('create', \App\Models\Room::class)
+    (function() {
+        const roomSelect = document.getElementById('room_id');
+        const btn = document.getElementById('btnQuickCreateRoom');
+        const modalEl = document.getElementById('quickCreateRoomModal');
+        const formQuick = document.getElementById('quickRoomForm');
+        if (!modalEl || !formQuick || !roomSelect) return;
+        const modal = new bootstrap.Modal(modalEl);
+
+        window.quickCreateRoom = function() {
+            formQuick.reset();
+            modal.show();
+        };
+
+        if (btn) {
+            btn.addEventListener('click', function() {
+                window.quickCreateRoom();
+            });
+        }
+
+        formQuick.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            try {
+                const data = await postJson('{{ route('rooms.store') }}', formQuick);
+                if (data && data.id && data.name) {
+                    const option = new Option(data.name, data.id, true, true);
+                    roomSelect.add(option);
+                    roomSelect.value = data.id;
+                }
+                modal.hide();
+            } catch (error) {
+                alert(error.message || 'Erreur lors de la création de la salle.');
+            }
+        });
+    })();
+    @endcan
 });
 </script>
 @endpush

@@ -18,10 +18,14 @@
             Accueil / Utilisateurs
         </p>
     </div>
-    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\User::class)): ?>
-    <a href="<?php echo e(route('users.create')); ?>" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-1"></i> Nouvel utilisateur
-    </a>
+    <?php
+        $canAdminUsersHeader = auth()->user()->hasAnyRole(['super-admin', 'admin', 'dsi'])
+            || auth()->user()->can('users.manage');
+    ?>
+    <?php if($canAdminUsersHeader): ?>
+        <a href="<?php echo e(route('users.create')); ?>" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Nouvel utilisateur
+        </a>
     <?php endif; ?>
 </div>
 
@@ -71,7 +75,7 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h5 class="mb-0 fw-bold"><?php echo e($inactiveUsers); ?></h5>
-                        <small class="text-muted">Utilisateur<?php echo e($inactiveUsers > 1 ? 's' : ''); ?> inactif<?php echo e($inactiveUsers > 1 ? 's' : ''); ?></small>
+                        <small class="text-muted">Utilisateur<?php echo e($inactiveUsers > 1 ? 's' : ''); ?> inactif<?php echo e($inactiveUsers > 1 ? 's' : ''); ?> (dont comptes en attente)</small>
                     </div>
                 </div>
             </div>
@@ -131,10 +135,12 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label small fw-semibold">Statut</label>
-                <select name="is_active" class="form-select">
+                <select name="status" class="form-select">
                     <option value="">Tous</option>
-                    <option value="1" <?php if($isActive === '1'): echo 'selected'; endif; ?>>Actifs</option>
-                    <option value="0" <?php if($isActive === '0'): echo 'selected'; endif; ?>>Inactifs</option>
+                    <option value="active" <?php if($status === 'active'): echo 'selected'; endif; ?>>Actifs</option>
+                    <option value="pending" <?php if($status === 'pending'): echo 'selected'; endif; ?>>En attente</option>
+                    <option value="rejected" <?php if($status === 'rejected'): echo 'selected'; endif; ?>>Rejetés</option>
+                    <option value="inactive" <?php if($status === 'inactive'): echo 'selected'; endif; ?>>Inactifs</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -143,7 +149,7 @@
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search me-1"></i> Filtrer
                     </button>
-                    <?php if(collect([$search, $service, $delegationId, $isActive])->filter()->isNotEmpty()): ?>
+                    <?php if(collect([$search, $service, $delegationId, $status])->filter()->isNotEmpty()): ?>
                         <a href="<?php echo e(route('users.index')); ?>" class="btn btn-outline-secondary">
                             <i class="bi bi-x-lg"></i>
                         </a>
@@ -155,7 +161,7 @@
 </div>
 
 
-<div class="modern-card">
+<div class="modern-card" id="user-status-root">
     <div class="modern-card-header">
         <h5 class="modern-card-title">
             <i class="bi bi-list-ul"></i>
@@ -203,8 +209,12 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <?php
+                        $canAdminUsers = auth()->user()->hasAnyRole(['super-admin', 'admin', 'dsi'])
+                            || auth()->user()->can('users.manage');
+                    ?>
                     <?php $__empty_1 = true; $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $user): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                        <tr>
+                        <tr data-user-id="<?php echo e($user->id); ?>">
                             <td class="fw-semibold"><?php echo e($user->last_name ?: ($user->name ?: '—')); ?></td>
                             <td><?php echo e($user->first_name ?: '—'); ?></td>
                             <td>
@@ -248,28 +258,56 @@
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if($user->is_active): ?>
-                                    <span class="badge bg-success text-white">Actif</span>
-                                <?php else: ?>
-                                    <span class="badge bg-danger text-white">Inactif</span>
-                                <?php endif; ?>
+                                <?php
+                                    $status = $user->status ?? ($user->is_active ? 'active' : 'inactive');
+                                    $statusLabel = [
+                                        'active'   => 'Actif',
+                                        'pending'  => 'En attente de validation',
+                                        'rejected' => 'Rejeté',
+                                        'inactive' => 'Inactif',
+                                    ][$status] ?? ucfirst($status);
+                                    $statusClass = match($status) {
+                                        'active'   => 'bg-success text-white',
+                                        'pending'  => 'bg-warning text-dark',
+                                        'rejected' => 'bg-danger text-white',
+                                        default    => 'bg-secondary text-white',
+                                    };
+                                ?>
+                                <span class="badge <?php echo e($statusClass); ?>"><?php echo e($statusLabel); ?></span>
                             </td>
                             <td class="text-end">
-                                <div class="table-actions">
+                                <div class="table-actions d-flex gap-1 justify-content-end">
                                     <a href="<?php echo e(route('users.show', $user)); ?>" 
                                        class="btn btn-sm btn-outline-primary"
                                        data-bs-toggle="tooltip"
                                        title="Voir les détails">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('update', $user)): ?>
-                                    <a href="<?php echo e(route('users.edit', $user)); ?>" 
-                                       class="btn btn-sm btn-outline-secondary"
-                                       data-bs-toggle="tooltip"
-                                       title="Modifier">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
+
+                                    <?php if($canAdminUsers): ?>
+                                        
+                                        <?php if(($user->status ?? 'inactive') === 'pending'): ?>
+                                            <form action="<?php echo e(route('users.approve', $user)); ?>"
+                                                  method="POST"
+                                                  class="d-inline">
+                                                <?php echo csrf_field(); ?>
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-success"
+                                                        data-bs-toggle="tooltip"
+                                                        title="Valider et activer ce compte">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+
+                                        <a href="<?php echo e(route('users.edit', $user)); ?>" 
+                                           class="btn btn-sm btn-outline-secondary"
+                                           data-bs-toggle="tooltip"
+                                           title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
                                     <?php endif; ?>
+
                                     <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('delete', $user)): ?>
                                     <form action="<?php echo e(route('users.destroy', $user)); ?>" 
                                           method="POST" 
@@ -293,7 +331,7 @@
                             <td colspan="8" class="text-center py-5">
                                 <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
                                 <p class="text-muted mb-0">Aucun utilisateur trouvé.</p>
-                                <?php if(collect([$search, $service, $delegationId, $isActive])->filter()->isNotEmpty()): ?>
+                                <?php if(collect([$search, $service, $delegationId, $status])->filter()->isNotEmpty()): ?>
                                     <a href="<?php echo e(route('users.index')); ?>" class="btn btn-sm btn-outline-primary mt-2">
                                         Réinitialiser les filtres
                                     </a>
@@ -318,7 +356,7 @@
             </div>
         </div>
     <?php endif; ?>
-</div>
+
 
 <?php $__env->startPush('styles'); ?>
 <style>
@@ -353,14 +391,104 @@
 
 <?php $__env->startPush('scripts'); ?>
 <script>
-    // Initialiser les tooltips Bootstrap
+    // Initialiser les tooltips Bootstrap (comportement léger et prévisible)
     document.addEventListener('DOMContentLoaded', function() {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     });
 </script>
+
+
+<div class="modal fade" id="userStatusModal" tabindex="-1" aria-labelledby="userStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userStatusModalLabel">
+                    <i class="bi bi-person-check me-1 text-primary"></i>
+                    Validation / mise à jour du compte utilisateur
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Nom complet</label>
+                        <div class="form-control-plaintext" x-text="user.name"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Email</label>
+                        <div class="form-control-plaintext" x-text="user.email"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Statut actuel</label>
+                        <div class="form-control-plaintext" x-text="statusLabel"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Date de création</label>
+                        <div class="form-control-plaintext" x-text="user.created_at"></div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Nouveau statut
+                            <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select"
+                                x-model="user.status">
+                            <option value="active">Actif</option>
+                            <option value="inactive">Inactif</option>
+                            <option value="pending">En attente de validation</option>
+                            <option value="rejected">Rejeté</option>
+                        </select>
+                        <template x-if="errors.status">
+                            <div class="invalid-feedback d-block" x-text="errors.status[0]"></div>
+                        </template>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">
+                            Rôles à attribuer
+                        </label>
+                        <select class="form-select"
+                                multiple
+                                size="5"
+                                x-model="user.roles">
+                            <template x-for="role in allRoles" :key="role.id">
+                                <option :value="role.id" x-text="role.name"></option>
+                            </template>
+                        </select>
+                        <div class="form-text">
+                            Laissez vide pour conserver les rôles actuels.
+                        </div>
+                        <template x-if="errors.roles">
+                            <div class="invalid-feedback d-block" x-text="errors.roles[0]"></div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Annuler
+                </button>
+                <button type="button" class="btn btn-primary" @click="save()" :disabled="saving">
+                    <span x-show="!saving">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Mettre à jour
+                    </span>
+                    <span x-show="saving">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        Enregistrement...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php $__env->stopPush(); ?>
 
 <?php $__env->stopSection(); ?>

@@ -16,6 +16,12 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         $user = $this->route('user');
+        $actor = $this->user();
+
+        // Seul l'utilisateur lui-même peut modifier son mot de passe via ce formulaire.
+        $passwordRule = ($actor && $actor->id === $user->id)
+            ? ['nullable', 'confirmed', Password::defaults()]
+            : ['nullable', 'prohibited'];
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -23,13 +29,14 @@ class UpdateUserRequest extends FormRequest
             'last_name' => ['nullable', 'string', 'max:255'],
             // La table est nommée "utilisateurs" dans la base
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('utilisateurs', 'email')->ignore($user->id)],
-            'password' => ['nullable', 'confirmed', Password::defaults()],
+            'password' => $passwordRule,
             'delegation_id' => ['nullable', 'exists:delegations,id'],
             'service' => ['nullable', 'string', 'max:255'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['exists:roles,id'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['exists:permissions,id'],
+            'status' => ['nullable', 'string', 'max:50'],
         ];
     }
 

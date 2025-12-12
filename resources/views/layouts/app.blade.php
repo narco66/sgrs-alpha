@@ -42,7 +42,7 @@
 
     <!-- Vite (Tailwind, Alpine, Echo, etc.) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+
     <!-- CSS Design Moderne -->
     <link rel="stylesheet" href="{{ asset('css/modern-design.css') }}">
 
@@ -948,44 +948,78 @@
                         <div class="ms-auto d-flex align-items-center gap-3">
                             {{-- Notifications (cloche) --}}
                             @auth
-                                <div class="dropdown position-relative">
+                                @php
+                                    $unreadCount = auth()->user()->unreadNotifications()->count();
+                                    $unreadNotifications = auth()->user()->unreadNotifications()->take(10)->get();
+                                @endphp
+                                <div class="dropdown position-relative" x-data="notificationBell()" x-init="init()">
                                     <button class="btn btn-sm btn-outline-secondary rounded-circle"
                                             type="button"
                                             id="notificationsDropdown"
                                             data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                         <i class="bi bi-bell"></i>
-                                        @php
-                                            $unreadCount = auth()->user()->unreadNotifications()->count();
-                                        @endphp
                                         <span id="notification-badge-count"
+                                              x-show="count > 0"
+                                              x-text="countLabel"
                                               class="badge bg-danger rounded-pill badge-notification {{ $unreadCount ? '' : 'd-none' }}">
                                             {{ $unreadCount > 9 ? '9+' : $unreadCount }}
                                         </span>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end"
                                         aria-labelledby="notificationsDropdown"
-                                        style="min-width: 280px;">
-                                        <li class="dropdown-header small fw-semibold">
-                                            Notifications
+                                        style="min-width: 320px;">
+                                        <li class="dropdown-header small fw-semibold d-flex justify-content-between align-items-center">
+                                            <span>Notifications</span>
+                                            <a href="{{ route('notifications.index') }}" class="small text-decoration-none">
+                                                Tout voir
+                                            </a>
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <div id="notification-dropdown-list"
-                                             style="max-height: 300px; overflow-y: auto;">
-                                            @forelse(auth()->user()->unreadNotifications()->take(10) as $notif)
-                                                <li>
-                                                    <a href="{{ route('meetings.show', $notif->data['meeting_id'] ?? '#') }}"
-                                                       class="dropdown-item small">
-                                                        <div class="fw-semibold">
-                                                            {{ $notif->data['title'] ?? 'Rappel de réunion' }}
+                                             style="max-height: 320px; overflow-y: auto;">
+                                            @forelse($unreadNotifications as $notif)
+                                                @php
+                                                    $data = $notif->data ?? [];
+                                                    $isUserPending = ($data['type'] ?? null) === 'new_user_pending_validation';
+                                                @endphp
+                                                <li class="px-1">
+                                                    @if($isUserPending)
+                                                        <div class="dropdown-item small d-flex justify-content-between align-items-start">
+                                                            <div class="me-2">
+                                                                <div class="fw-semibold">
+                                                                    Nouveau compte en attente
+                                                                </div>
+                                                                <div class="text-muted">
+                                                                    {{ $data['user_name'] ?? 'Utilisateur' }}
+                                                                    @if(!empty($data['user_email']))
+                                                                        • {{ $data['user_email'] }}
+                                                                    @endif
+                                                                </div>
+                                                                <div class="text-muted small">
+                                                                    {{ $notif->created_at->diffForHumans() }}
+                                                                </div>
+                                                            </div>
+                                                            <div class="d-flex flex-column gap-1 align-items-end">
+                                                                @if(!empty($data['url']))
+                                                                    <a href="{{ $data['url'] }}"
+                                                                       class="btn btn-sm btn-primary">
+                                                                        Valider
+                                                                    </a>
+                                                                @endif
+                                                            </div>
                                                         </div>
-                                                        <div class="text-muted">
-                                                            {{ $notif->data['meeting_type'] ?? 'Réunion statutaire' }}
-                                                            @if(!empty($notif->data['room']))
-                                                                • {{ $notif->data['room'] }}
-                                                            @endif
-                                                        </div>
-                                                    </a>
+                                                    @else
+                                                        <a href="#"
+                                                           class="dropdown-item small">
+                                                            <div class="fw-semibold">
+                                                                {{ $data['title'] ?? ($data['message'] ?? 'Notification') }}
+                                                            </div>
+                                                            <div class="text-muted small">
+                                                                {{ $notif->created_at->diffForHumans() }}
+                                                            </div>
+                                                        </a>
+                                                    @endif
                                                 </li>
                                             @empty
                                                 <li>
@@ -1212,5 +1246,95 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"
     ></script>
+
+    <script>
+        if (window.Alpine) {
+            window.Alpine.data('notificationBell', () => ({
+                count: {{ $unreadCount ?? 0 }},
+                pollIntervalMs: 30000,
+                init() {
+                    this.poll();
+                    setInterval(() => this.poll(), this.pollIntervalMs);
+                },
+                async poll() {
+                    try {
+                        const response = await fetch('{{ route('notifications.poll') }}', {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const data = await response.json();
+                        this.count = data.count ?? 0;
+
+                        const list = document.getElementById('notification-dropdown-list');
+                        if (!list) return;
+
+                        const notifications = data.notifications ?? [];
+                        if (!notifications.length) {
+                            list.innerHTML = `
+                                <li>
+                                    <span class="dropdown-item small text-muted">
+                                        Aucune notification non lue.
+                                    </span>
+                                </li>
+                            `;
+                            return;
+                        }
+
+                        let html = '';
+                        notifications.forEach((notif) => {
+                            const type = notif.type || '';
+                            if (type === 'new_user_pending_validation') {
+                                const name = notif.user_name || 'Utilisateur';
+                                const email = notif.user_email ? ` • ${notif.user_email}` : '';
+                                const url = notif.url || '';
+                                const date = notif.created_at_human || '';
+
+                                html += `
+<li class="px-1">
+  <div class="dropdown-item small d-flex justify-content-between align-items-start">
+    <div class="me-2">
+      <div class="fw-semibold">Nouveau compte en attente</div>
+      <div class="text-muted">
+        ${name}${email}
+      </div>
+      <div class="text-muted small">${date}</div>
+    </div>
+    <div class="d-flex flex-column gap-1 align-items-end">
+      ${url ? `<a href="${url}" class="btn btn-sm btn-primary">Valider</a>` : ''}
+    </div>
+  </div>
+</li>`;
+                            } else {
+                                const message = notif.message || 'Notification';
+                                const date = notif.created_at_human || '';
+                                html += `
+<li>
+  <a href="#" class="dropdown-item small">
+    <div class="fw-semibold">${message}</div>
+    <div class="text-muted small">${date}</div>
+  </a>
+</li>`;
+                            }
+                        });
+
+                        list.innerHTML = html;
+                    } catch (e) {
+                        // On ignore les erreurs réseau pour ne pas perturber l'UI.
+                    }
+                },
+                get countLabel() {
+                    if (!this.count) return '';
+                    return this.count > 9 ? '9+' : String(this.count);
+                },
+            }))
+        }
+    </script>
 </body>
 </html>

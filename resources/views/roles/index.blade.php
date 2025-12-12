@@ -18,11 +18,10 @@
                 </ol>
             </nav>
         </div>
-        @can('create', \Spatie\Permission\Models\Role::class)
-            <a href="{{ route('roles.create') }}" class="btn btn-modern btn-primary">
-                <i class="bi bi-plus-circle"></i> Nouveau Rôle
-            </a>
-        @endcan
+        {{-- Bouton de création de rôle : accessible à tout utilisateur autorisé à cette page (Super-Admin) --}}
+        <a href="{{ route('roles.create') }}" class="btn btn-modern btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouveau Rôle
+        </a>
     </div>
 
     {{-- Filtres --}}
@@ -183,11 +182,9 @@
                     <i class="bi bi-shield-x display-1 text-muted"></i>
                     <h5 class="mt-3">Aucun rôle trouvé</h5>
                     <p class="text-muted">Commencez par créer un nouveau rôle.</p>
-                    @can('create', \Spatie\Permission\Models\Role::class)
-                        <a href="{{ route('roles.create') }}" class="btn btn-modern btn-primary mt-3">
-                            <i class="bi bi-plus-circle"></i> Créer un rôle
-                        </a>
-                    @endcan
+                    <a href="{{ route('roles.create') }}" class="btn btn-modern btn-primary mt-3">
+                        <i class="bi bi-plus-circle"></i> Créer un rôle
+                    </a>
                 </div>
             @endif
         </div>

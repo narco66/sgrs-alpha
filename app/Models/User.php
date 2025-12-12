@@ -39,6 +39,7 @@ class User extends Authenticatable
         'delegation_id',
         'service',
         'is_active',
+        'status',
     ];
 
     /**
@@ -55,7 +56,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_active'        => 'boolean',
-        'password' => 'hashed',
+        'status'           => 'string',
+        'password'         => 'hashed',
     ];
 
     /* ============================================================

@@ -48,8 +48,14 @@ class LoginRequest extends FormRequest
         if ($user && isset($user->is_active) && !$user->is_active) {
             RateLimiter::hit($this->throttleKey());
 
+            $message = match ($user->status ?? 'inactive') {
+                'pending'  => 'Votre compte est en attente de validation par un administrateur.',
+                'rejected' => 'Votre demande de compte a été rejetée. Veuillez contacter l\'administrateur si nécessaire.',
+                default    => 'Votre compte est désactivé. Veuillez contacter l\'administrateur.',
+            };
+
             throw ValidationException::withMessages([
-                'email' => 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.',
+                'email' => $message,
             ]);
         }
 

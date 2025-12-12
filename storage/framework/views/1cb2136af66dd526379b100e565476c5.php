@@ -42,7 +42,7 @@
 
     <!-- Vite (Tailwind, Alpine, Echo, etc.) -->
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
-    
+
     <!-- CSS Design Moderne -->
     <link rel="stylesheet" href="<?php echo e(asset('css/modern-design.css')); ?>">
 
@@ -948,17 +948,20 @@
                         <div class="ms-auto d-flex align-items-center gap-3">
                             
                             <?php if(auth()->guard()->check()): ?>
-                                <div class="dropdown position-relative">
+                                <?php
+                                    $unreadCount = auth()->user()->unreadNotifications()->count();
+                                    $unreadNotifications = auth()->user()->unreadNotifications()->take(10)->get();
+                                ?>
+                                <div class="dropdown position-relative" x-data="notificationBell()" x-init="init()">
                                     <button class="btn btn-sm btn-outline-secondary rounded-circle"
                                             type="button"
                                             id="notificationsDropdown"
                                             data-bs-toggle="dropdown"
                                             aria-expanded="false">
                                         <i class="bi bi-bell"></i>
-                                        <?php
-                                            $unreadCount = auth()->user()->unreadNotifications()->count();
-                                        ?>
                                         <span id="notification-badge-count"
+                                              x-show="count > 0"
+                                              x-text="countLabel"
                                               class="badge bg-danger rounded-pill badge-notification <?php echo e($unreadCount ? '' : 'd-none'); ?>">
                                             <?php echo e($unreadCount > 9 ? '9+' : $unreadCount); ?>
 
@@ -966,30 +969,63 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end"
                                         aria-labelledby="notificationsDropdown"
-                                        style="min-width: 280px;">
-                                        <li class="dropdown-header small fw-semibold">
-                                            Notifications
+                                        style="min-width: 320px;">
+                                        <li class="dropdown-header small fw-semibold d-flex justify-content-between align-items-center">
+                                            <span>Notifications</span>
+                                            <a href="<?php echo e(route('notifications.index')); ?>" class="small text-decoration-none">
+                                                Tout voir
+                                            </a>
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <div id="notification-dropdown-list"
-                                             style="max-height: 300px; overflow-y: auto;">
-                                            <?php $__empty_1 = true; $__currentLoopData = auth()->user()->unreadNotifications()->take(10); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notif): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                                                <li>
-                                                    <a href="<?php echo e(route('meetings.show', $notif->data['meeting_id'] ?? '#')); ?>"
-                                                       class="dropdown-item small">
-                                                        <div class="fw-semibold">
-                                                            <?php echo e($notif->data['title'] ?? 'Rappel de réunion'); ?>
+                                             style="max-height: 320px; overflow-y: auto;">
+                                            <?php $__empty_1 = true; $__currentLoopData = $unreadNotifications; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $notif): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                                <?php
+                                                    $data = $notif->data ?? [];
+                                                    $isUserPending = ($data['type'] ?? null) === 'new_user_pending_validation';
+                                                ?>
+                                                <li class="px-1">
+                                                    <?php if($isUserPending): ?>
+                                                        <div class="dropdown-item small d-flex justify-content-between align-items-start">
+                                                            <div class="me-2">
+                                                                <div class="fw-semibold">
+                                                                    Nouveau compte en attente
+                                                                </div>
+                                                                <div class="text-muted">
+                                                                    <?php echo e($data['user_name'] ?? 'Utilisateur'); ?>
 
+                                                                    <?php if(!empty($data['user_email'])): ?>
+                                                                        • <?php echo e($data['user_email']); ?>
+
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                                <div class="text-muted small">
+                                                                    <?php echo e($notif->created_at->diffForHumans()); ?>
+
+                                                                </div>
+                                                            </div>
+                                                            <div class="d-flex flex-column gap-1 align-items-end">
+                                                                <?php if(!empty($data['url'])): ?>
+                                                                    <a href="<?php echo e($data['url']); ?>"
+                                                                       class="btn btn-sm btn-primary">
+                                                                        Valider
+                                                                    </a>
+                                                                <?php endif; ?>
+                                                            </div>
                                                         </div>
-                                                        <div class="text-muted">
-                                                            <?php echo e($notif->data['meeting_type'] ?? 'Réunion statutaire'); ?>
+                                                    <?php else: ?>
+                                                        <a href="#"
+                                                           class="dropdown-item small">
+                                                            <div class="fw-semibold">
+                                                                <?php echo e($data['title'] ?? ($data['message'] ?? 'Notification')); ?>
 
-                                                            <?php if(!empty($notif->data['room'])): ?>
-                                                                • <?php echo e($notif->data['room']); ?>
+                                                            </div>
+                                                            <div class="text-muted small">
+                                                                <?php echo e($notif->created_at->diffForHumans()); ?>
 
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </a>
+                                                            </div>
+                                                        </a>
+                                                    <?php endif; ?>
                                                 </li>
                                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                                 <li>
@@ -1217,6 +1253,96 @@
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"
     ></script>
+
+    <script>
+        if (window.Alpine) {
+            window.Alpine.data('notificationBell', () => ({
+                count: <?php echo e($unreadCount ?? 0); ?>,
+                pollIntervalMs: 30000,
+                init() {
+                    this.poll();
+                    setInterval(() => this.poll(), this.pollIntervalMs);
+                },
+                async poll() {
+                    try {
+                        const response = await fetch('<?php echo e(route('notifications.poll')); ?>', {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const data = await response.json();
+                        this.count = data.count ?? 0;
+
+                        const list = document.getElementById('notification-dropdown-list');
+                        if (!list) return;
+
+                        const notifications = data.notifications ?? [];
+                        if (!notifications.length) {
+                            list.innerHTML = `
+                                <li>
+                                    <span class="dropdown-item small text-muted">
+                                        Aucune notification non lue.
+                                    </span>
+                                </li>
+                            `;
+                            return;
+                        }
+
+                        let html = '';
+                        notifications.forEach((notif) => {
+                            const type = notif.type || '';
+                            if (type === 'new_user_pending_validation') {
+                                const name = notif.user_name || 'Utilisateur';
+                                const email = notif.user_email ? ` • ${notif.user_email}` : '';
+                                const url = notif.url || '';
+                                const date = notif.created_at_human || '';
+
+                                html += `
+<li class="px-1">
+  <div class="dropdown-item small d-flex justify-content-between align-items-start">
+    <div class="me-2">
+      <div class="fw-semibold">Nouveau compte en attente</div>
+      <div class="text-muted">
+        ${name}${email}
+      </div>
+      <div class="text-muted small">${date}</div>
+    </div>
+    <div class="d-flex flex-column gap-1 align-items-end">
+      ${url ? `<a href="${url}" class="btn btn-sm btn-primary">Valider</a>` : ''}
+    </div>
+  </div>
+</li>`;
+                            } else {
+                                const message = notif.message || 'Notification';
+                                const date = notif.created_at_human || '';
+                                html += `
+<li>
+  <a href="#" class="dropdown-item small">
+    <div class="fw-semibold">${message}</div>
+    <div class="text-muted small">${date}</div>
+  </a>
+</li>`;
+                            }
+                        });
+
+                        list.innerHTML = html;
+                    } catch (e) {
+                        // On ignore les erreurs réseau pour ne pas perturber l'UI.
+                    }
+                },
+                get countLabel() {
+                    if (!this.count) return '';
+                    return this.count > 9 ? '9+' : String(this.count);
+                },
+            }))
+        }
+    </script>
 </body>
 </html>
 <?php /**PATH C:\laragon\www\sgrs-alpha\resources\views/layouts/app.blade.php ENDPATH**/ ?>

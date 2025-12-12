@@ -119,9 +119,9 @@
                                 @enderror
                             </div>
 
-                            {{-- Date et Heure --}}
-                            <div class="col-md-4">
-                                <label class="form-label">Date <span class="text-danger">*</span></label>
+                            {{-- Date et heure de début --}}
+                            <div class="col-md-3">
+                                <label class="form-label">Date de début <span class="text-danger">*</span></label>
                                 <input type="date"
                                        name="date"
                                        class="form-control @error('date') is-invalid @enderror"
@@ -132,8 +132,8 @@
                                 @enderror
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Heure <span class="text-danger">*</span></label>
+                            <div class="col-md-3">
+                                <label class="form-label">Heure de début <span class="text-danger">*</span></label>
                                 <input type="time"
                                        name="time"
                                        class="form-control @error('time') is-invalid @enderror"
@@ -144,16 +144,27 @@
                                 @enderror
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Durée <span class="text-danger">*</span></label>
-                                <select name="duration_minutes" class="form-select @error('duration_minutes') is-invalid @enderror" required>
-                                    @foreach([30, 60, 90, 120, 180, 240] as $minutes)
-                                        <option value="{{ $minutes }}" @selected(old('duration_minutes', $meeting->duration_minutes ?? 60) == $minutes)>
-                                            {{ $minutes }} minutes
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('duration_minutes')
+                            {{-- Date et heure de fin --}}
+                            <div class="col-md-3">
+                                <label class="form-label">Date de fin <span class="text-danger">*</span></label>
+                                <input type="date"
+                                       name="end_date"
+                                       class="form-control @error('end_date') is-invalid @enderror"
+                                       value="{{ old('end_date', $meeting->end_at ? $meeting->end_at->format('Y-m-d') : ($meeting->start_at?->format('Y-m-d') ?? now()->format('Y-m-d'))) }}"
+                                       required>
+                                @error('end_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Heure de fin <span class="text-danger">*</span></label>
+                                <input type="time"
+                                       name="end_time"
+                                       class="form-control @error('end_time') is-invalid @enderror"
+                                       value="{{ old('end_time', $meeting->end_at ? $meeting->end_at->format('H:i') : ($meeting->start_at?->copy()->addMinutes($meeting->duration_minutes ?? 60)->format('H:i') ?? '')) }}"
+                                       required>
+                                @error('end_time')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -1056,16 +1067,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
                 errorMessage = 'Le nom du nouveau comité d\'organisation est obligatoire.';
                 errorTab = 'committee';
-            }
-        }
-
-        // Validation onglet cahier des charges
-        if (isValid && createTermsCheckbox && createTermsCheckbox.checked) {
-            const hostCountry = document.querySelector('input[name="terms_host_country"]');
-            if (hostCountry && !hostCountry.value.trim()) {
-                isValid = false;
-                errorMessage = 'Le pays hôte est obligatoire pour créer un cahier des charges.';
-                errorTab = 'terms';
             }
         }
 

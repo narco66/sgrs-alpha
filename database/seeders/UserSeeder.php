@@ -17,6 +17,14 @@ class UserSeeder extends Seeder
         $roleSG         = Role::where('name', 'sg')->first();
         $roleDSI        = Role::where('name', 'dsi')->first();
         $roleStaff      = Role::where('name', 'staff')->first();
+        $roleDrhmg      = Role::firstOrCreate([
+            'name'       => 'drhmg',
+            'guard_name' => 'web',
+        ]);
+        $roleUser       = Role::firstOrCreate([
+            'name'       => 'user',
+            'guard_name' => 'web',
+        ]);
 
         // 1. Super Admin
         $superAdmin = User::updateOrCreate(
@@ -24,6 +32,8 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Super Administrateur SGRS-CEEAC',
                 'password'          => Hash::make('Password@2025'),
+                'is_active'         => true,
+                'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
@@ -38,6 +48,8 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Administrateur Secrétariat Général',
                 'password'          => Hash::make('Password@2025'),
+                'is_active'         => true,
+                'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
@@ -55,6 +67,8 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Administrateur DSI',
                 'password'          => Hash::make('Password@2025'),
+                'is_active'         => true,
+                'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
@@ -72,6 +86,8 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Utilisateur Staff SGRS',
                 'password'          => Hash::make('Password@2025'),
+                'is_active'         => true,
+                'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
@@ -86,6 +102,8 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Test User',
                 'password'          => Hash::make('password'), // mot de passe par défaut
+                'is_active'         => true,
+                'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
@@ -94,7 +112,58 @@ class UserSeeder extends Seeder
             $testUser->assignRole($roleStaff);
         }
 
-        // 6. Génération optionnelle de quelques users supplémentaires via factory
+        // 6. Administrateur par défaut
+        $defaultAdmin = User::updateOrCreate(
+            ['email' => 'admin@sgrs-ceeac.org'],
+            [
+                'name'              => 'Administrateur SGRS',
+                'password'          => Hash::make('Admin@2025!'),
+                'is_active'         => true,
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        if ($roleSuperAdmin && !$defaultAdmin->hasRole($roleSuperAdmin->name)) {
+            $defaultAdmin->assignRole($roleSuperAdmin);
+        } elseif ($roleAdmin && !$defaultAdmin->hasRole($roleAdmin->name)) {
+            $defaultAdmin->assignRole($roleAdmin);
+        }
+
+        // 7. Compte DRHMG
+        $drhmgUser = User::updateOrCreate(
+            ['email' => 'drhmg@sgrs-ceeac.org'],
+            [
+                'name'              => 'Responsable DRHMG',
+                'password'          => Hash::make('Drhmg@2025!'),
+                'is_active'         => true,
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        if ($roleDrhmg && !$drhmgUser->hasRole($roleDrhmg->name)) {
+            $drhmgUser->assignRole($roleDrhmg);
+        }
+
+        // 8. Utilisateur standard
+        $standardUser = User::updateOrCreate(
+            ['email' => 'user@sgrs-ceeac.org'],
+            [
+                'name'              => 'Utilisateur Standard',
+                'password'          => Hash::make('User@2025!'),
+                'is_active'         => true,
+                'status'            => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $defaultUserRole = $roleUser ?? $roleStaff;
+        if ($defaultUserRole && !$standardUser->hasRole($defaultUserRole->name)) {
+            $standardUser->assignRole($defaultUserRole);
+        }
+
+        // 9. Génération optionnelle de quelques users supplémentaires via factory
         // Assurez-vous que votre UserFactory définit un mot de passe par défaut
         User::factory()->count(10)->create()->each(function (User $user) use ($roleStaff) {
             if ($roleStaff) {

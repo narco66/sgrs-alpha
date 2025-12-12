@@ -110,7 +110,7 @@ class RoomController extends Controller
             $imagePath = $request->file('image')->store('rooms', 'public');
         }
 
-        Room::create([
+        $room = Room::create([
             'name'        => $data['name'],
             'code'        => strtoupper($data['code']),
             'capacity'    => $data['capacity'],
@@ -120,6 +120,14 @@ class RoomController extends Controller
             'equipments'  => $request->input('equipments', []),
             'is_active'   => $request->boolean('is_active', true),
         ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'id'     => $room->id,
+                'name'   => $room->name,
+            ]);
+        }
 
         return redirect()
             ->route('rooms.index')

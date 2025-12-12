@@ -265,7 +265,7 @@
 
                 <div class="row mb-2">
                     <div class="col-md-4">
-                        <div class="text-muted small">Date</div>
+                        <div class="text-muted small">Date de début</div>
                         <div class="fw-semibold">
                             {{ $meeting->start_at?->format('d/m/Y') ?? '—' }}
                         </div>
@@ -275,17 +275,19 @@
                         <div class="fw-semibold">
                             @if($meeting->start_at)
                                 {{ $meeting->start_at->format('H:i') }}
-                                –
-                                {{ $meeting->start_at->copy()->addMinutes($meeting->duration_minutes)->format('H:i') }}
                             @else
                                 —
                             @endif
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-muted small">Durée</div>
+                        <div class="text-muted small">Date / heure de fin</div>
                         <div class="fw-semibold">
-                            {{ $meeting->duration_minutes }} minutes
+                            @if($meeting->end_at)
+                                {{ $meeting->end_at->format('d/m/Y H:i') }}
+                            @else
+                                —
+                            @endif
                         </div>
                     </div>
                 </div>

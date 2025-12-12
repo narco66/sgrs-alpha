@@ -12,6 +12,9 @@ use App\Events\MeetingUpdated;
 use App\Events\ParticipantRsvpUpdated;
 use App\Events\UserCreated;
 use App\Events\UserUpdated;
+use App\Events\UserSelfRegistered;
+use App\Events\UserApproved;
+use App\Events\UserRejected;
 use App\Listeners\DispatchNotificationListener;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -27,6 +30,15 @@ class EventServiceProvider extends ServiceProvider
             DispatchNotificationListener::class,
         ],
         UserUpdated::class => [
+            DispatchNotificationListener::class,
+        ],
+        UserSelfRegistered::class => [
+            DispatchNotificationListener::class,
+        ],
+        UserApproved::class => [
+            DispatchNotificationListener::class,
+        ],
+        UserRejected::class => [
             DispatchNotificationListener::class,
         ],
         MeetingCreated::class => [
@@ -55,6 +67,8 @@ class EventServiceProvider extends ServiceProvider
         ],
     ];
 }
+
+
 
 
 

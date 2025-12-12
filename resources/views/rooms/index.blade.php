@@ -105,9 +105,7 @@
                         @php
                             $meeting   = $room->current_meeting;
                             $startTime = $meeting->start_at?->format('H:i');
-                            $endTime   = $meeting->start_at
-                                ? $meeting->start_at->copy()->addMinutes($meeting->duration_minutes)->format('H:i')
-                                : null;
+                            $endTime   = $meeting->end_at?->format('H:i');
                             $meetingParticipants = $meeting->participants->count() ?? 0;
                         @endphp
 

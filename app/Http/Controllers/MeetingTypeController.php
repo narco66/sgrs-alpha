@@ -46,7 +46,7 @@ class MeetingTypeController extends Controller
 
     public function store(StoreMeetingTypeRequest $request)
     {
-        MeetingType::create([
+        $meetingType = MeetingType::create([
             'name'                       => $request->input('name'),
             'code'                       => strtoupper($request->input('code')),
             'color'                      => $request->input('color'),
@@ -56,6 +56,15 @@ class MeetingTypeController extends Controller
             'description'                => $request->input('description'),
             'is_active'                  => $request->boolean('is_active', true),
         ]);
+        
+        // Réponse JSON pour les créations rapides (ex: depuis le formulaire de réunion)
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'id'     => $meetingType->id,
+                'name'   => $meetingType->name,
+            ]);
+        }
 
         return redirect()
             ->route('meeting-types.index')

@@ -49,6 +49,8 @@ Route::middleware(['auth', 'verified'])
         // Routes pour les notifications - EF40, EF41
         Route::get('/notifications', [NotificationController::class, 'index'])
             ->name('notifications.index');
+        Route::get('/notifications/poll', [NotificationController::class, 'poll'])
+            ->name('notifications.poll');
         Route::post('/notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])
             ->name('notifications.markAsRead');
         Route::post('/notifications/mark-all-as-read', [NotificationController::class, 'markAllAsRead'])
@@ -103,6 +105,8 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index');
         Route::get('rooms/{room}', [RoomController::class, 'show'])->name('rooms.show');
+        // Création rapide de salles depuis le formulaire de réunion (JSON ou classique)
+        Route::post('rooms', [RoomController::class, 'store'])->name('rooms.store');
 
         Route::resource('documents', DocumentController::class)->except(['edit', 'update']);
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])
@@ -134,6 +138,12 @@ Route::middleware(['auth', 'verified'])
         Route::resource('users', UserController::class);
         Route::post('users/{user}/toggle-active', [UserController::class, 'toggleActive'])
             ->name('users.toggle-active');
+        Route::post('users/{user}/approve', [UserController::class, 'approve'])
+            ->name('users.approve');
+        Route::post('users/{user}/reject', [UserController::class, 'reject'])
+            ->name('users.reject');
+        Route::post('users/{user}/quick-update-status', [UserController::class, 'quickUpdateStatusAndRoles'])
+            ->name('users.quick-update-status');
 
         // Changement de statut (workflow)
         Route::post('meetings/{meeting}/status', [MeetingController::class, 'changeStatus'])

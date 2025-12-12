@@ -272,13 +272,15 @@
                 <div class="col-md-6">
                     <label class="form-label">
                         <i class="bi bi-toggle-on"></i>
-                        Statut
+                        Statut du compte
                     </label>
-                    <select name="is_active" class="form-select @error('is_active') is-invalid @enderror">
-                        <option value="1" @selected(old('is_active', true))>Actif</option>
-                        <option value="0" @selected(old('is_active') === '0')>Inactif</option>
+                    <select name="status" class="form-select @error('status') is-invalid @enderror">
+                        <option value="active" @selected(old('status', 'active') === 'active')>Actif</option>
+                        <option value="inactive" @selected(old('status') === 'inactive')>Inactif</option>
+                        <option value="pending" @selected(old('status') === 'pending')>En attente de validation</option>
+                        <option value="rejected" @selected(old('status') === 'rejected')>Rejeté</option>
                     </select>
-                    @error('is_active')
+                    @error('status')
                         <div class="invalid-feedback">
                             <i class="bi bi-exclamation-circle"></i>
                             {{ $message }}
