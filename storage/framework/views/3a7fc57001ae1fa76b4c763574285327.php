@@ -191,8 +191,8 @@ unset($__errorArgs, $__bag); ?>
                             </div>
 
                             
-                            <div class="col-md-4">
-                                <label class="form-label">Date <span class="text-danger">*</span></label>
+                            <div class="col-md-3">
+                                <label class="form-label">Date de début <span class="text-danger">*</span></label>
                                 <input type="date"
                                        name="date"
                                        class="form-control <?php $__errorArgs = ['date'];
@@ -217,8 +217,8 @@ endif;
 unset($__errorArgs, $__bag); ?>
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Heure <span class="text-danger">*</span></label>
+                            <div class="col-md-3">
+                                <label class="form-label">Heure de début <span class="text-danger">*</span></label>
                                 <input type="time"
                                        name="time"
                                        class="form-control <?php $__errorArgs = ['time'];
@@ -243,23 +243,48 @@ endif;
 unset($__errorArgs, $__bag); ?>
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Durée <span class="text-danger">*</span></label>
-                                <select name="duration_minutes" class="form-select <?php $__errorArgs = ['duration_minutes'];
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">Date de fin <span class="text-danger">*</span></label>
+                                <input type="date"
+                                       name="end_date"
+                                       class="form-control <?php $__errorArgs = ['end_date'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
 $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
-unset($__errorArgs, $__bag); ?>" required>
-                                    <?php $__currentLoopData = [30, 60, 90, 120, 180, 240]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $minutes): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($minutes); ?>" <?php if(old('duration_minutes', 60) == $minutes): echo 'selected'; endif; ?>>
-                                            <?php echo e($minutes); ?> minutes
-                                        </option>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                </select>
-                                <?php $__errorArgs = ['duration_minutes'];
+unset($__errorArgs, $__bag); ?>"
+                                       value="<?php echo e(old('end_date', now()->format('Y-m-d'))); ?>"
+                                       required>
+                                <?php $__errorArgs = ['end_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label">Heure de fin <span class="text-danger">*</span></label>
+                                <input type="time"
+                                       name="end_time"
+                                       class="form-control <?php $__errorArgs = ['end_time'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                       value="<?php echo e(old('end_time')); ?>"
+                                       required>
+                                <?php $__errorArgs = ['end_time'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -1429,16 +1454,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isValid = false;
                 errorMessage = 'Le nom du nouveau comité d\'organisation est obligatoire.';
                 errorTab = 'committee';
-            }
-        }
-
-        // Validation onglet cahier des charges
-        if (isValid && createTermsCheckbox && createTermsCheckbox.checked) {
-            const hostCountry = document.querySelector('input[name="terms_host_country"]');
-            if (hostCountry && !hostCountry.value.trim()) {
-                isValid = false;
-                errorMessage = 'Le pays hôte est obligatoire pour créer un cahier des charges.';
-                errorTab = 'terms';
             }
         }
 

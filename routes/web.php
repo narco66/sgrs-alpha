@@ -18,6 +18,7 @@ use App\Http\Controllers\OrganizationCommitteeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportingController;
+use App\Http\Controllers\DelegationMemberController;
 
 
 // Page d'accueil publique
@@ -130,6 +131,36 @@ Route::middleware(['auth', 'verified'])
         Route::resource('delegations', DelegationController::class);
         Route::get('delegations/{delegation}/pdf', [DelegationController::class, 'exportPdf'])
             ->name('delegations.pdf');
+
+        // Membres de délégation & badges PDF
+        Route::prefix('delegations/{delegation}')
+            ->name('delegations.')
+            ->group(function () {
+                // Gestion des membres
+                Route::get('members', [DelegationMemberController::class, 'index'])
+                    ->name('members.index');
+                Route::get('members/create', [DelegationMemberController::class, 'create'])
+                    ->name('members.create');
+                Route::post('members', [DelegationMemberController::class, 'store'])
+                    ->name('members.store');
+                Route::get('members/{member}/edit', [DelegationMemberController::class, 'edit'])
+                    ->name('members.edit');
+                Route::put('members/{member}', [DelegationMemberController::class, 'update'])
+                    ->name('members.update');
+                Route::delete('members/{member}', [DelegationMemberController::class, 'destroy'])
+                    ->name('members.destroy');
+                Route::patch('members/{member}/status', [DelegationMemberController::class, 'updateStatus'])
+                    ->name('members.update-status');
+
+                // Badges PDF (unitaire et tous les badges)
+                Route::get('members/{member}/badge', [DelegationMemberController::class, 'exportBadgePdf'])
+                    ->name('members.badge');
+                Route::get('badges', [DelegationMemberController::class, 'exportAllBadgesPdf'])
+                    ->name('badges');
+                // Alias explicite utilisé dans certaines vues
+                Route::get('badges/all', [DelegationMemberController::class, 'exportAllBadgesPdf'])
+                    ->name('badges.all');
+            });
         Route::get('organization-committees/{organizationCommittee}/pdf', [OrganizationCommitteeController::class, 'exportPdf'])
             ->name('organization-committees.pdf');
         Route::resource('document-types', \App\Http\Controllers\DocumentTypeController::class);

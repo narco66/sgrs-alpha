@@ -66,3 +66,5 @@ class NewUserPendingValidation extends Notification implements ShouldQueue
 }
 
 
+
+

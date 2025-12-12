@@ -47,3 +47,5 @@ class UserAccountApprovedNotification extends Notification implements ShouldQueu
 }
 
 
+
+

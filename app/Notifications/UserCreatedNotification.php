@@ -50,3 +50,5 @@ class UserCreatedNotification extends Notification implements ShouldQueue
 
 
 
+
+
