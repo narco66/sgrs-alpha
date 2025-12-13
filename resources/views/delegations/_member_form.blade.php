@@ -169,6 +169,27 @@
             @enderror
         </div>
 
+        <div class="col-md-6">
+            <label class="form-label">Photo (facultatif)</label>
+            <input type="file"
+                   name="members[{{ $index }}][photo]"
+                   accept="image/*"
+                   class="form-control @error("members.{$index}.photo") is-invalid @enderror">
+            <small class="text-muted">Formats acceptés : JPG, PNG, max 2 Mo.</small>
+            @if(!empty($member['photo_path']))
+                <div class="mt-2 d-flex align-items-center">
+                    <img src="{{ asset('storage/' . $member['photo_path']) }}"
+                         alt="{{ $member['first_name'] ?? '' }} {{ $member['last_name'] ?? '' }}"
+                         class="rounded-circle me-2"
+                         style="width: 40px; height: 40px; object-fit: cover;">
+                    <small class="text-muted">Photo actuelle</small>
+                </div>
+            @endif
+            @error("members.{$index}.photo")
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
         <div class="col-12">
             <label class="form-label">Notes</label>
             <textarea name="members[{{ $index }}][notes]" 

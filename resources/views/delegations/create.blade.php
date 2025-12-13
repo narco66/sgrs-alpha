@@ -35,7 +35,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('delegations.store') }}">
+        <form method="POST" action="{{ route('delegations.store') }}" enctype="multipart/form-data">
             @if(request('meeting_id'))
                 <input type="hidden" name="redirect_to_meeting" value="1">
             @endif

@@ -40,9 +40,13 @@
 
                 <div class="mb-3">
                     <label class="form-label">Fichier</label>
-                    <input type="file" name="file" class="form-control" required>
+                    <input type="file"
+                           name="file"
+                           class="form-control"
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                           required>
                     <div class="form-text">
-                        Formats recommandés : PDF, Word, Excel, PowerPoint. Taille maximale : 25 Mo.
+                        Formats acceptés : PDF, Word, Excel, PowerPoint. Taille maximale : 500 Mo.
                     </div>
                 </div>
 

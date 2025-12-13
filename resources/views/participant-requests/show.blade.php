@@ -74,10 +74,10 @@
                         <dd class="col-sm-9">{{ $participantRequest->review_comments ?? '—' }}</dd>
                     @endif
                     
-                    @if($participantRequest->participant)
+                    @if($participantRequest->delegationMember)
                         <dt class="col-sm-3">Participant créé</dt>
                         <dd class="col-sm-9">
-                            <span class="badge bg-success">Participant ajouté avec succès</span>
+                            <span class="badge bg-success">Membre de délégation créé : {{ $participantRequest->delegationMember->full_name }}</span>
                         </dd>
                     @endif
                 </dl>

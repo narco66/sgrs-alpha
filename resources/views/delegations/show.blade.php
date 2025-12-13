@@ -148,13 +148,20 @@
             </div>
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="bg-danger-subtle rounded-circle p-2 me-3">
-                        <i class="bi bi-person-badge fs-4 text-danger"></i>
-                    </div>
+                    @if($delegation->head_of_delegation_photo_url)
+                        <img src="{{ $delegation->head_of_delegation_photo_url }}"
+                             alt="{{ $delegation->head_of_delegation_name }}"
+                             class="rounded-circle me-3"
+                             style="width: 56px; height: 56px; object-fit: cover;">
+                    @else
+                        <div class="bg-danger-subtle rounded-circle p-2 me-3">
+                            <i class="bi bi-person-badge fs-4 text-danger"></i>
+                        </div>
+                    @endif
                     <div>
                         <h6 class="mb-0">{{ $delegation->head_of_delegation_name }}</h6>
                         @if($delegation->head_of_delegation_position)
-                            <small class="text-muted">{{ $delegation->head_of_delegation_position }}</small>
+                            <small class="text-muted d-block">{{ $delegation->head_of_delegation_position }}</small>
                         @endif
                         @if($delegation->head_of_delegation_email)
                             <div class="small">
@@ -189,9 +196,20 @@
                     <div class="list-group list-group-flush">
                         @foreach($delegation->members->sortBy(function($m) { return $m->role === 'head' ? 0 : 1; }) as $member)
                             <div class="list-group-item px-0 d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="fw-semibold">
-                                        {{ $member->full_name }}
+                                <div class="d-flex align-items-center">
+                                    @if($member->photo_url)
+                                        <img src="{{ $member->photo_url }}"
+                                             alt="{{ $member->full_name }}"
+                                             class="rounded-circle me-2"
+                                             style="width: 40px; height: 40px; object-fit: cover;">
+                                    @else
+                                        <div class="bg-light rounded-circle p-2 me-2">
+                                            <i class="bi bi-person text-secondary"></i>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="fw-semibold">
+                                            {{ $member->full_name }}
                                         @if($member->role === 'head')
                                             <span class="badge bg-danger-subtle text-danger-emphasis ms-1">Chef</span>
                                         @endif

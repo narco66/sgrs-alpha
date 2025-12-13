@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ParticipantRequest;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
+use App\Models\Delegation;
+use App\Models\DelegationMember;
 use App\Models\User;
 use App\Notifications\ParticipantRequestStatusUpdatedNotification;
 use App\Notifications\ParticipantRequestSubmittedNotification;
@@ -126,14 +128,34 @@ class ParticipantRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($validated, $participantRequest) {
-            // Créer le participant
-            $participant = MeetingParticipant::create([
-                'meeting_id' => $participantRequest->meeting_id,
-                'user_id' => null, // Participant externe
-                'name' => $participantRequest->participant_name,
-                'email' => $participantRequest->participant_email,
-                'role' => $participantRequest->participant_role ?? 'invite',
-                'status' => 'pending',
+            // Retrouver la réunion
+            $meeting = $participantRequest->meeting;
+
+            // Créer (ou retrouver) une délégation "Invités individuels" pour cette réunion
+            $delegation = Delegation::firstOrCreate(
+                [
+                    'meeting_id'  => $participantRequest->meeting_id,
+                    'title'       => 'Invités individuels',
+                    'entity_type' => Delegation::ENTITY_TYPE_OTHER,
+                ],
+                [
+                    'country'               => null,
+                    'organization_name'     => null,
+                    'is_active'             => true,
+                    'participation_status'  => Delegation::STATUS_CONFIRMED,
+                    'confirmed_at'          => now(),
+                ]
+            );
+
+            // Créer le membre de délégation correspondant au participant demandé
+            $member = DelegationMember::create([
+                'delegation_id' => $delegation->id,
+                'first_name'    => $participantRequest->participant_name,
+                'last_name'     => null,
+                'email'         => $participantRequest->participant_email,
+                'position'      => $participantRequest->participant_role,
+                'role'          => DelegationMember::ROLE_MEMBER,
+                'status'        => DelegationMember::STATUS_INVITED,
             ]);
 
             // Mettre à jour la demande
@@ -142,7 +164,8 @@ class ParticipantRequestController extends Controller
                 'reviewed_by' => Auth::id(),
                 'reviewed_at' => now(),
                 'review_comments' => $validated['review_comments'] ?? null,
-                'participant_id' => $participant->id,
+                // On conserve l'ID du membre créé pour traçabilité
+                'delegation_member_id' => $member->id,
             ]);
 
             // Notification au demandeur

@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Meeting;
-use App\Models\Participant;
+use App\Models\DelegationMember;
 use App\Models\Room;
 use App\Models\Document;
-use App\Models\MeetingParticipant;
 use App\Models\User;
 use App\Models\DocumentValidation;
 use Carbon\Carbon;
@@ -44,7 +43,8 @@ class DashboardController extends Controller
             ? round((($meetingsThisMonth - $meetingsLastMonth) / $meetingsLastMonth) * 100, 1)
             : 0;
 
-        $activeParticipants = Participant::where('is_active', true)->count();
+        // Participants physiques : membres de délégations
+        $activeParticipants = DelegationMember::count();
         $totalUsers = User::where('is_active', true)->count();
 
         $activeRooms = Room::where('is_active', true)->count();
@@ -53,16 +53,19 @@ class DashboardController extends Controller
         $sharedDocuments = Document::where('is_shared', true)->count();
         $totalDocuments = Document::whereNull('deleted_at')->count();
 
-        // Taux de participation moyen
-        $totalInvitations = MeetingParticipant::whereHas('meeting', function ($q) use ($startOfMonth, $endOfMonth) {
-            $q->whereBetween('start_at', [$startOfMonth, $endOfMonth])
-              ->whereNull('deleted_at');
-        })->count();
+        // Taux de participation moyen (nouvelle logique : membres de délégations)
+        $totalInvitations = DelegationMember::whereHas('delegation.meeting', function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereBetween('start_at', [$startOfMonth, $endOfMonth])
+                  ->whereNull('deleted_at');
+            })
+            ->count();
 
-        $confirmedInvitations = MeetingParticipant::whereHas('meeting', function ($q) use ($startOfMonth, $endOfMonth) {
-            $q->whereBetween('start_at', [$startOfMonth, $endOfMonth])
-              ->whereNull('deleted_at');
-        })->where('status', 'confirmed')->count();
+        $confirmedInvitations = DelegationMember::whereHas('delegation.meeting', function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereBetween('start_at', [$startOfMonth, $endOfMonth])
+                  ->whereNull('deleted_at');
+            })
+            ->where('status', 'confirmed')
+            ->count();
 
         $participationRate = $totalInvitations > 0 
             ? round(($confirmedInvitations / $totalInvitations) * 100, 1)

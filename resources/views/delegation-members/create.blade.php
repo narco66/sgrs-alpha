@@ -50,7 +50,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('delegations.members.store', $delegation) }}" method="POST">
+                    <form action="{{ route('delegations.members.store', $delegation) }}" method="POST" enctype="multipart/form-data">
                         @csrf
 
                         <div class="row g-3">
@@ -93,6 +93,20 @@
                                        value="{{ old('email') }}"
                                        placeholder="exemple@email.com">
                                 @error('email')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Photo --}}
+                            <div class="col-md-6">
+                                <label for="photo" class="form-label">Photo (facultatif)</label>
+                                <input type="file"
+                                       name="photo"
+                                       id="photo"
+                                       accept="image/*"
+                                       class="form-control @error('photo') is-invalid @enderror">
+                                <small class="text-muted">Formats acceptés : JPG, PNG, max 2 Mo.</small>
+                                @error('photo')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

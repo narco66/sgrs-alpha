@@ -49,9 +49,16 @@ class StoreDelegationRequest extends FormRequest
     public function rules(): array
     {
         $entityType = $this->input('entity_type');
-        
+        $meetingId = $this->input('meeting_id');
+
         $rules = [
-            'title'                     => ['required', 'string', 'max:255'],
+            'title'                     => [
+                'required',
+                'string',
+                'max:255',
+                // Unicité du titre par réunion
+                'unique:delegations,title,NULL,id,meeting_id,' . $meetingId,
+            ],
             'entity_type'               => ['required', 'string', 'in:' . implode(',', \App\Models\Delegation::entityTypes())],
             'country_code'              => ['nullable', 'string', 'max:3'],
             'country'                   => ['nullable', 'string', 'max:100'],
@@ -63,6 +70,7 @@ class StoreDelegationRequest extends FormRequest
             'head_of_delegation_name'   => ['nullable', 'string', 'max:255'],
             'head_of_delegation_position' => ['nullable', 'string', 'max:255'],
             'head_of_delegation_email'  => ['nullable', 'email', 'max:255'],
+            'head_of_delegation_photo'  => ['nullable', 'image', 'max:2048'],
             'meeting_id'                => ['required', 'exists:reunions,id'],
             'participation_status'       => ['nullable', 'string', 'in:' . implode(',', \App\Models\Delegation::participationStatuses())],
             'notes'                     => ['nullable', 'string'],
@@ -74,12 +82,13 @@ class StoreDelegationRequest extends FormRequest
             'members.*.first_name'      => ['nullable', 'string', 'max:255'],
             'members.*.last_name'       => ['nullable', 'string', 'max:255'],
             'members.*.email'           => ['nullable', 'email', 'max:255'],
+            'members.*.photo'           => ['nullable', 'image', 'max:2048'],
             'members.*.phone'           => ['nullable', 'string', 'max:50'],
             'members.*.position'        => ['nullable', 'string', 'max:255'],
             'members.*.title'           => ['nullable', 'string', 'max:255'],
             'members.*.institution'     => ['nullable', 'string', 'max:255'],
             'members.*.department'      => ['nullable', 'string', 'max:255'],
-            'members.*.role'            => ['nullable', 'string', 'in:head,member,expert,observer,secretary'],
+            'members.*.role'            => ['nullable', 'string', 'in:head,member,expert,observer,secretary,advisor,interpreter'],
             'members.*.status'          => ['nullable', 'string', 'in:invited,confirmed,present,absent,excused'],
             'members.*.notes'           => ['nullable', 'string'],
         ];

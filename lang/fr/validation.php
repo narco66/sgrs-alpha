@@ -42,6 +42,7 @@ return [
     'email'                => 'Le champ :attribute doit être une adresse email valide.',
     'exists'               => 'Le champ :attribute sélectionné est invalide.',
     'file'                 => 'Le champ :attribute doit être un fichier.',
+    'image'                => 'Le champ :attribute doit être une image (JPG, PNG, etc.).',
     'filled'               => 'Le champ :attribute doit avoir une valeur.',
 
     'gt'                   => [
@@ -168,6 +169,8 @@ return [
         'document_type_id'  => 'type de document',
         'file'              => 'fichier',
         'status'            => 'statut',
+        'photo'             => 'photo',
+        'head_of_delegation_photo' => 'photo du chef de délégation',
     ],
 
 ];

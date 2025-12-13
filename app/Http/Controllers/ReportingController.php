@@ -6,6 +6,7 @@ use App\Models\Meeting;
 use App\Models\Document;
 use App\Models\User;
 use App\Models\MeetingParticipant;
+use App\Models\DelegationMember;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -86,21 +87,26 @@ class ReportingController extends Controller
     {
         [$startDate, $endDate] = $this->resolveDateRange($request);
 
-        // Taux de participation global
-        $totalInvitations = MeetingParticipant::whereHas('meeting', function ($q) use ($startDate, $endDate) {
-            $q->whereBetween('start_at', [$startDate, $endDate])
-              ->whereNull('deleted_at');
-        })->count();
+        // Taux de participation global (nouvelle logique : membres de délégations)
+        $totalInvitations = DelegationMember::whereHas('delegation.meeting', function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_at', [$startDate, $endDate])
+                  ->whereNull('deleted_at');
+            })
+            ->count();
 
-        $totalConfirmed = MeetingParticipant::whereHas('meeting', function ($q) use ($startDate, $endDate) {
-            $q->whereBetween('start_at', [$startDate, $endDate])
-              ->whereNull('deleted_at');
-        })->where('status', 'confirmed')->count();
+        $totalConfirmed = DelegationMember::whereHas('delegation.meeting', function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_at', [$startDate, $endDate])
+                  ->whereNull('deleted_at');
+            })
+            ->where('status', 'confirmed')
+            ->count();
 
-        $totalAttended = MeetingParticipant::whereHas('meeting', function ($q) use ($startDate, $endDate) {
-            $q->whereBetween('start_at', [$startDate, $endDate])
-              ->whereNull('deleted_at');
-        })->whereNotNull('checked_in_at')->count();
+        $totalAttended = DelegationMember::whereHas('delegation.meeting', function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_at', [$startDate, $endDate])
+                  ->whereNull('deleted_at');
+            })
+            ->whereNotNull('checked_in_at')
+            ->count();
 
         $globalParticipationRate = $totalInvitations > 0 
             ? round(($totalConfirmed / $totalInvitations) * 100, 2) 
@@ -110,17 +116,16 @@ class ReportingController extends Controller
             ? round(($totalAttended / $totalInvitations) * 100, 2) 
             : 0;
 
-        // Par service
-        $byService = MeetingParticipant::selectRaw('utilisateurs.service, COUNT(*) as total_invitations, 
-                SUM(CASE WHEN participants_reunions.status = "confirmed" THEN 1 ELSE 0 END) as confirmed,
-                SUM(CASE WHEN participants_reunions.checked_in_at IS NOT NULL THEN 1 ELSE 0 END) as attended')
-            ->join('utilisateurs', 'participants_reunions.user_id', '=', 'utilisateurs.id')
-            ->whereHas('meeting', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('start_at', [$startDate, $endDate])
-                  ->whereNull('deleted_at');
-            })
-            ->whereNotNull('utilisateurs.service')
-            ->groupBy('utilisateurs.service')
+        // Par délégation / entité (nouvelle vision : tout par délégations)
+        $byDelegation = DelegationMember::selectRaw('delegations.title as delegation_title,
+                    COUNT(*) as total_invitations,
+                    SUM(CASE WHEN delegation_members.status = "confirmed" THEN 1 ELSE 0 END) as confirmed,
+                    SUM(CASE WHEN delegation_members.checked_in_at IS NOT NULL THEN 1 ELSE 0 END) as attended')
+            ->join('delegations', 'delegation_members.delegation_id', '=', 'delegations.id')
+            ->join('reunions', 'delegations.meeting_id', '=', 'reunions.id')
+            ->whereBetween('reunions.start_at', [$startDate, $endDate])
+            ->whereNull('reunions.deleted_at')
+            ->groupBy('delegations.title')
             ->orderByDesc('total_invitations')
             ->get();
 
@@ -130,7 +135,7 @@ class ReportingController extends Controller
             'totalAttended',
             'globalParticipationRate',
             'attendanceRate',
-            'byService',
+            'byDelegation',
             'startDate',
             'endDate'
         ));
@@ -281,25 +286,23 @@ class ReportingController extends Controller
                     break;
 
                 case 'participants':
-                    fputcsv($file, ['Service', 'Invitations', 'Confirmés', 'Présents', 'Taux de participation'], ';');
-                    $data = MeetingParticipant::selectRaw('utilisateurs.service, 
+                    fputcsv($file, ['Délégation', 'Invitations', 'Confirmés', 'Présents', 'Taux de participation'], ';');
+                    $data = DelegationMember::selectRaw('delegations.title as delegation_title,
                             COUNT(*) as total_invitations,
-                            SUM(CASE WHEN participants_reunions.status = "confirmed" THEN 1 ELSE 0 END) as confirmed,
-                            SUM(CASE WHEN participants_reunions.checked_in_at IS NOT NULL THEN 1 ELSE 0 END) as attended')
-                        ->join('utilisateurs', 'participants_reunions.user_id', '=', 'utilisateurs.id')
-                        ->whereHas('meeting', function ($q) use ($startDate, $endDate) {
-                            $q->whereBetween('start_at', [$startDate, $endDate])
-                              ->whereNull('deleted_at');
-                        })
-                        ->whereNotNull('utilisateurs.service')
-                        ->groupBy('utilisateurs.service')
+                            SUM(CASE WHEN delegation_members.status = "confirmed" THEN 1 ELSE 0 END) as confirmed,
+                            SUM(CASE WHEN delegation_members.checked_in_at IS NOT NULL THEN 1 ELSE 0 END) as attended')
+                        ->join('delegations', 'delegation_members.delegation_id', '=', 'delegations.id')
+                        ->join('reunions', 'delegations.meeting_id', '=', 'reunions.id')
+                        ->whereBetween('reunions.start_at', [$startDate, $endDate])
+                        ->whereNull('reunions.deleted_at')
+                        ->groupBy('delegations.title')
                         ->get();
                     foreach ($data as $row) {
-                        $rate = $row->total_invitations > 0 
+                            $rate = $row->total_invitations > 0 
                             ? round(($row->confirmed / $row->total_invitations) * 100, 2) 
                             : 0;
                         fputcsv($file, [
-                            $row->service,
+                            $row->delegation_title,
                             $row->total_invitations,
                             $row->confirmed,
                             $row->attended,
@@ -370,16 +373,14 @@ class ReportingController extends Controller
 
             case 'participants':
                 return [
-                    'byService' => MeetingParticipant::selectRaw('utilisateurs.service, 
+                    'byDelegation' => DelegationMember::selectRaw('delegations.title as delegation_title,
                             COUNT(*) as total_invitations,
-                            SUM(CASE WHEN participants_reunions.status = "confirmed" THEN 1 ELSE 0 END) as confirmed')
-                        ->join('utilisateurs', 'participants_reunions.user_id', '=', 'utilisateurs.id')
-                        ->whereHas('meeting', function ($q) use ($startDate, $endDate) {
-                            $q->whereBetween('start_at', [$startDate, $endDate])
-                              ->whereNull('deleted_at');
-                        })
-                        ->whereNotNull('utilisateurs.service')
-                        ->groupBy('utilisateurs.service')
+                            SUM(CASE WHEN delegation_members.status = "confirmed" THEN 1 ELSE 0 END) as confirmed')
+                        ->join('delegations', 'delegation_members.delegation_id', '=', 'delegations.id')
+                        ->join('reunions', 'delegations.meeting_id', '=', 'reunions.id')
+                        ->whereBetween('reunions.start_at', [$startDate, $endDate])
+                        ->whereNull('reunions.deleted_at')
+                        ->groupBy('delegations.title')
                         ->get(),
                 ];
 

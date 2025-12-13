@@ -24,7 +24,7 @@
     <div class="card-body">
         @include('partials.alerts')
 
-        <form method="POST" action="{{ route('delegations.update', $delegation) }}">
+        <form method="POST" action="{{ route('delegations.update', $delegation) }}" enctype="multipart/form-data">
             @method('PUT')
             @if(request('redirect_to_meeting') || ($delegation->meeting_id && request('from_meeting')))
                 <input type="hidden" name="redirect_to_meeting" value="1">

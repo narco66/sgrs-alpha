@@ -206,4 +206,17 @@ class Delegation extends Model
             default => $this->title,
         };
     }
+
+    /**
+     * URL de la photo du chef de délégation (si stockée)
+     */
+    public function getHeadOfDelegationPhotoUrlAttribute(): ?string
+    {
+        if (empty($this->head_of_delegation_photo_path)) {
+            return null;
+        }
+
+        // On suppose que le fichier est stocké sur le disque "public"
+        return asset('storage/' . ltrim($this->head_of_delegation_photo_path, '/'));
+    }
 }

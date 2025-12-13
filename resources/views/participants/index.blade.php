@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Participants')
+@section('title', 'Participants (toutes délégations)')
 
 @section('content')
 {{-- Breadcrumb --}}
@@ -14,8 +14,8 @@
 {{-- En-tete de page --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h3 class="page-title mb-1">Participants</h3>
-        <p class="text-muted mb-0 small">Accueil / Participants</p>
+        <h3 class="page-title mb-1">Participants (toutes délégations)</h3>
+        <p class="text-muted mb-0 small">Vue globale des personnes issues des délégations, par réunion.</p>
     </div>
     <a href="{{ route('meetings.index') }}" class="btn btn-modern btn-modern-secondary">
         <i class="bi bi-calendar3"></i>
@@ -41,7 +41,7 @@
         <form method="GET" action="{{ route('participants.index') }}" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label class="form-label">Recherche</label>
-                <input type="text" name="q" class="form-control" value="{{ $search ?? '' }}" placeholder="Nom, email, service">
+                <input type="text" name="q" class="form-control" value="{{ $search ?? '' }}" placeholder="Nom, email, institution, pays, délégation">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Réunion</label>
@@ -55,11 +55,14 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Statut</label>
+                <label class="form-label">Statut individuel</label>
                 <select name="status" class="form-select">
                     <option value="all" @selected(($status ?? 'all') === 'all')>Tous</option>
-                    <option value="active" @selected(($status ?? '') === 'active')>Actifs</option>
-                    <option value="inactive" @selected(($status ?? '') === 'inactive')>Inactifs</option>
+                    <option value="invited" @selected(($status ?? '') === 'invited')>Invités</option>
+                    <option value="confirmed" @selected(($status ?? '') === 'confirmed')>Confirmés</option>
+                    <option value="present" @selected(($status ?? '') === 'present')>Présents</option>
+                    <option value="absent" @selected(($status ?? '') === 'absent')>Absents</option>
+                    <option value="excused" @selected(($status ?? '') === 'excused')>Excusés</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex gap-2">
@@ -78,7 +81,7 @@
     <div class="modern-card-header">
         <h5 class="modern-card-title">
             <i class="bi bi-people"></i>
-            Liste des participants
+            Liste des participants (membres de délégation)
         </h5>
         <span class="badge-modern badge-modern-primary">
             {{ $participants->total() }} participant{{ $participants->total() > 1 ? 's' : '' }}
@@ -91,51 +94,96 @@
                     <tr>
                         <th>Participant</th>
                         <th>Email</th>
-                        <th>Service</th>
+                        <th>Institution / Pays</th>
+                        <th>Délégation</th>
+                        <th>Réunion</th>
                         <th>Statut</th>
-                        <th>Réunions</th>
-                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 @forelse($participants as $participant)
                     @php
-                        $displayName = $participant->name
-                            ?: trim(($participant->first_name ?? '') . ' ' . ($participant->last_name ?? ''));
+                        $fullName    = $participant->full_name;
+                        $delegation  = $participant->delegation ?? null;
+                        $meeting     = $delegation?->meeting ?? null;
+                        $entityLabel = $delegation
+                            ? ($delegation->organization_name
+                                ?: $delegation->country
+                                ?: $delegation->title)
+                            : null;
+
+                        $roleLabels = [
+                            'head'       => 'Chef de délégation',
+                            'member'     => 'Membre',
+                            'expert'     => 'Expert',
+                            'observer'   => 'Observateur',
+                            'secretary'  => 'Secrétaire',
+                            'advisor'    => 'Conseiller',
+                            'interpreter'=> 'Interprète',
+                        ];
+
+                        $statusColors = [
+                            'invited'   => 'warning',
+                            'confirmed' => 'success',
+                            'present'   => 'primary',
+                            'absent'    => 'danger',
+                            'excused'   => 'secondary',
+                        ];
+
+                        $statusLabels = [
+                            'invited'   => 'Invité',
+                            'confirmed' => 'Confirmé',
+                            'present'   => 'Présent',
+                            'absent'    => 'Absent',
+                            'excused'   => 'Excusé',
+                        ];
                     @endphp
                     <tr>
-                        <td class="fw-semibold">{{ $displayName ?: 'Utilisateur' }}</td>
-                        <td>{{ $participant->email ?? 'N/A' }}</td>
-                        <td>{{ $participant->service ?? 'Non renseigné' }}</td>
-                        <td>
-                            @if($participant->is_active)
-                                <span class="badge-modern badge-modern-success">Actif</span>
-                            @else
-                                <span class="badge-modern badge-modern-secondary">Inactif</span>
-                            @endif
-                        </td>
-                        <td>
-                            <span class="badge bg-light text-dark">{{ $participant->meetings_count ?? 0 }}</span>
-                            @if(($participant->meetingParticipations ?? null)?->isNotEmpty())
-                                <div class="small text-muted mt-1">
-                                    @foreach(($participant->meetingParticipations->take(3) ?? []) as $mp)
-                                        <div>- {{ $mp->meeting?->title ?? 'Réunion' }} ({{ $mp->meeting?->start_at?->format('d/m') }})</div>
-                                    @endforeach
-                                    @if(($participant->meetingParticipations->count() ?? 0) > 3)
-                                        <div class="text-muted">+ {{ $participant->meetingParticipations->count() - 3 }} autres...</div>
-                                    @endif
+                        <td class="fw-semibold">
+                            {{ $fullName ?: 'Participant' }}
+                            @if($participant->role)
+                                <div class="small text-muted">
+                                    {{ $roleLabels[$participant->role] ?? ucfirst($participant->role) }}
                                 </div>
                             @endif
                         </td>
-                        <td class="text-end">
-                            <div class="table-actions">
-                                <a href="{{ route('users.show', $participant) }}"
-                                   class="btn btn-sm btn-outline-secondary"
-                                   data-bs-toggle="tooltip"
-                                   title="Voir la fiche utilisateur">
-                                    <i class="bi bi-person"></i>
+                        <td>{{ $participant->email ?? 'N/A' }}</td>
+                        <td>
+                            @if($participant->institution)
+                                <div>{{ $participant->institution }}</div>
+                            @endif
+                            @if($delegation?->country)
+                                <div class="small text-muted">{{ $delegation->country }}</div>
+                            @endif
+                        </td>
+                        <td>
+                            @if($delegation)
+                                <a href="{{ route('delegations.show', $delegation) }}" class="text-decoration-none">
+                                    {{ $delegation->title ?? $entityLabel ?? 'Délégation' }}
                                 </a>
-                            </div>
+                            @else
+                                <span class="text-muted">Non rattaché</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($meeting)
+                                <a href="{{ route('meetings.show', $meeting) }}" class="text-decoration-none">
+                                    {{ $meeting->title }}
+                                </a>
+                                @if($meeting->start_at)
+                                    <div class="small text-muted">{{ $meeting->start_at->format('d/m/Y') }}</div>
+                                @endif
+                            @else
+                                <span class="text-muted">Aucune réunion</span>
+                            @endif
+                        </td>
+                        <td>
+                            @php
+                                $s = $participant->status ?? 'invited';
+                            @endphp
+                            <span class="badge bg-{{ $statusColors[$s] ?? 'secondary' }}">
+                                {{ $statusLabels[$s] ?? ucfirst($s) }}
+                            </span>
                         </td>
                     </tr>
                 @empty
@@ -143,8 +191,8 @@
                         <td colspan="6" class="text-center py-5">
                             <div class="empty-state">
                                 <i class="bi bi-inbox empty-state-icon"></i>
-                                <div class="empty-state-title">Aucun participant</div>
-                                <div class="empty-state-text">Aucun participant relié à une réunion pour le moment.</div>
+                            <div class="empty-state-title">Aucun participant trouvé</div>
+                            <div class="empty-state-text">Aucun membre de délégation ne correspond aux filtres actuels.</div>
                                 <a href="{{ route('participants.index') }}" class="btn btn-modern btn-modern-secondary mt-3">Réinitialiser les filtres</a>
                             </div>
                         </td>

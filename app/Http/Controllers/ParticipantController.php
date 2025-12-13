@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ParticipantRequest;
 use App\Models\Meeting;
 use App\Models\Participant;
+use App\Models\DelegationMember;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -19,36 +20,43 @@ class ParticipantController extends Controller
     {
         $search    = $request->get('q');
         $meetingId = $request->get('meeting_id');
-        $status    = $request->get('status'); // active|inactive|all
+        $status    = $request->get('status'); // invited|confirmed|present|absent|excused|all
 
-        // Liste les utilisateurs qui participent au moins a une reunion (participants_reunions)
-        $participants = User::whereHas('meetingParticipations')
-            ->with([
-                'meetingParticipations' => function ($q) use ($meetingId) {
-                    $q->with('meeting')
-                        ->when($meetingId, fn ($m) => $m->where('meeting_id', $meetingId));
-                },
-            ])
-            ->withCount([
-                'meetingParticipations as meetings_count' => function ($q) use ($meetingId) {
-                    if ($meetingId) {
-                        $q->where('meeting_id', $meetingId);
-                    }
-                },
-            ])
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($sub) use ($search) {
-                    $sub->where('name', 'like', "%{$search}%")
-                        ->orWhere('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('service', 'like', "%{$search}%");
-                });
-            })
-            ->when($meetingId, fn ($q) => $q->whereHas('meetingParticipations', fn ($m) => $m->where('meeting_id', $meetingId)))
-            ->when($status === 'active', fn ($q) => $q->where('is_active', true))
-            ->when($status === 'inactive', fn ($q) => $q->where('is_active', false))
-            ->orderBy('name')
+        // Nouvelle logique : liste des personnes physiques via les membres de délégation
+        // Un "participant" = un DelegationMember rattaché à une réunion via sa délégation.
+        $participantsQuery = DelegationMember::with(['delegation.meeting']);
+
+        // Filtre réunion
+        if ($meetingId) {
+            $participantsQuery->whereHas('delegation', function ($q) use ($meetingId) {
+                $q->where('meeting_id', $meetingId);
+            });
+        }
+
+        // Filtre statut individuel (invited, confirmed, present, absent, excused)
+        if ($status && $status !== 'all') {
+            $participantsQuery->where('status', $status);
+        }
+
+        // Recherche texte : nom, email, institution, pays, délégation
+        if ($search) {
+            $participantsQuery->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('institution', 'like', "%{$search}%")
+                    ->orWhereHas('delegation', function ($dq) use ($search) {
+                        $dq->where('title', 'like', "%{$search}%")
+                           ->orWhere('country', 'like', "%{$search}%")
+                           ->orWhere('organization_name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $participants = $participantsQuery
+            ->orderByRaw("CASE WHEN role = 'head' THEN 0 ELSE 1 END")
+            ->orderBy('last_name')
+            ->orderBy('first_name')
             ->paginate(15)
             ->withQueryString();
 

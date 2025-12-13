@@ -57,7 +57,7 @@ class NotificationController extends Controller
     /**
      * Marquer une notification comme lue
      */
-    public function markAsRead(DatabaseNotification $notification)
+    public function markAsRead(Request $request, DatabaseNotification $notification)
     {
         if (Auth::id() === $notification->notifiable_id) {
             $notification->markAsRead();
@@ -75,7 +75,14 @@ class NotificationController extends Controller
                 ]
             );
 
-            return response()->json(['status' => 'success']);
+            // Réponse adaptée selon le type de requête (AJAX ou formulaire classique)
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success']);
+            }
+
+            return redirect()
+                ->back()
+                ->with('success', 'La notification a été marquée comme lue.');
         }
 
         return response()->json([
@@ -110,12 +117,18 @@ class NotificationController extends Controller
     /**
      * Suppression d'une notification.
      */
-    public function destroy(DatabaseNotification $notification)
+    public function destroy(Request $request, DatabaseNotification $notification)
     {
         if (Auth::id() === $notification->notifiable_id) {
             $notification->delete();
 
-            return response()->json(['status' => 'success']);
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success']);
+            }
+
+            return redirect()
+                ->back()
+                ->with('success', 'La notification a été supprimée.');
         }
 
         return response()->json([

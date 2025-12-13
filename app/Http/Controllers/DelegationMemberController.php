@@ -6,6 +6,9 @@ use App\Models\Delegation;
 use App\Models\DelegationMember;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use App\Services\BadgeGeneratorService;
+use Illuminate\Support\Str;
 
 /**
  * Contrôleur pour la gestion des membres de délégation
@@ -59,6 +62,7 @@ class DelegationMemberController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:2048'],
             'phone' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:255'],
@@ -71,6 +75,13 @@ class DelegationMemberController extends Controller
 
         $validated['delegation_id'] = $delegation->id;
         $validated['status'] = $validated['status'] ?? DelegationMember::STATUS_INVITED;
+        $validated['badge_uuid'] = (string) Str::uuid();
+
+        // Upload de la photo si fournie
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('delegation_members', 'public');
+            $validated['photo_path'] = $path;
+        }
 
         // Si c'est le chef de délégation, s'assurer qu'il n'y en a qu'un
         if ($validated['role'] === DelegationMember::ROLE_HEAD) {
@@ -118,6 +129,7 @@ class DelegationMemberController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:2048'],
             'phone' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:255'],
@@ -133,6 +145,17 @@ class DelegationMemberController extends Controller
             $delegation->members()->where('role', DelegationMember::ROLE_HEAD)
                 ->where('id', '!=', $member->id)
                 ->update(['role' => DelegationMember::ROLE_MEMBER]);
+        }
+
+        // Gestion de la photo
+        if ($request->hasFile('photo')) {
+            // Supprimer l'ancienne photo si présente
+            if ($member->photo_path) {
+                Storage::disk('public')->delete($member->photo_path);
+            }
+
+            $path = $request->file('photo')->store('delegation_members', 'public');
+            $validated['photo_path'] = $path;
         }
 
         $member->update($validated);
@@ -154,6 +177,11 @@ class DelegationMemberController extends Controller
         }
 
         $member->delete();
+
+        // Supprimer la photo associée s'il y en a une
+        if ($member->photo_path) {
+            Storage::disk('public')->delete($member->photo_path);
+        }
 
         return redirect()
             ->route('delegations.show', $delegation)
@@ -193,7 +221,7 @@ class DelegationMemberController extends Controller
     /**
      * Export du badge d'un membre en PDF.
      */
-    public function exportBadgePdf(Delegation $delegation, DelegationMember $member)
+    public function exportBadgePdf(Delegation $delegation, DelegationMember $member, BadgeGeneratorService $badgeGenerator)
     {
         $this->authorize('view', $delegation);
 
@@ -203,15 +231,14 @@ class DelegationMemberController extends Controller
 
         $delegation->load('meeting');
 
-        $pdf = Pdf::loadView('participants.pdf-badge', [
-            'participant' => $member,
-            'delegation' => $delegation,
-            'meeting' => $delegation->meeting,
-        ])->setPaper([0, 0, 241, 153], 'landscape'); // Format badge 85mm x 54mm
+        $fileName = 'badge-' . (($member->last_name ?? '') ?: $member->id) . '.pdf';
 
-        $fileName = 'badge-' . ($member->last_name ?? $member->id) . '.pdf';
-
-        return $pdf->download($fileName);
+        return $badgeGenerator->downloadForParticipant(
+            $member,
+            $delegation->meeting,
+            $delegation,
+            $fileName
+        );
     }
 
     /**
@@ -219,7 +246,7 @@ class DelegationMemberController extends Controller
      * Inclut le Chef de Délégation (si renseigné dans les champs de la délégation)
      * et tous les membres enregistrés.
      */
-    public function exportAllBadgesPdf(Delegation $delegation)
+    public function exportAllBadgesPdf(Delegation $delegation, BadgeGeneratorService $badgeGenerator)
     {
         $this->authorize('view', $delegation);
 
@@ -250,6 +277,8 @@ class DelegationMemberController extends Controller
                 $headOfDelegation->title = '';
                 $headOfDelegation->role = 'head';
                 $headOfDelegation->status = $delegation->participation_status ?? 'confirmed';
+                // Utiliser la photo du chef définie au niveau de la délégation si disponible
+                $headOfDelegation->photo_path = $delegation->head_of_delegation_photo_path ?? null;
                 
                 $participants->push($headOfDelegation);
             }
@@ -265,15 +294,14 @@ class DelegationMemberController extends Controller
             return back()->with('error', 'Aucun membre à inclure dans les badges.');
         }
 
-        $pdf = Pdf::loadView('participants.pdf-badges-multiple', [
-            'participants' => $participants,
-            'delegation' => $delegation,
-            'meeting' => $delegation->meeting,
-        ])->setPaper([0, 0, 241, 153], 'landscape'); // Format badge 85mm x 54mm
-
         $fileName = 'badges-delegation-' . ($delegation->country ?? $delegation->id) . '.pdf';
 
-        return $pdf->download($fileName);
+        return $badgeGenerator->downloadForParticipants(
+            $participants,
+            $delegation->meeting,
+            $delegation,
+            $fileName
+        );
     }
 }
 

@@ -29,7 +29,8 @@ class ParticipantRequest extends Model
         'status',
         'review_comments',
         'reviewed_at',
-        'participant_id',
+        'participant_id',        // legacy (MeetingParticipant) - conservé pour compatibilité historique
+        'delegation_member_id',  // nouveau lien vers DelegationMember
     ];
 
     protected $casts = [
@@ -61,11 +62,20 @@ class ParticipantRequest extends Model
     }
 
     /**
-     * Participant créé (si approuvé)
+     * Participant legacy créé (si approuvé) - MeetingParticipant
+     * @deprecated Utiliser delegationMember() à la place
      */
     public function participant()
     {
         return $this->belongsTo(MeetingParticipant::class, 'participant_id');
+    }
+
+    /**
+     * Membre de délégation créé (nouvelle logique) si la demande est approuvée.
+     */
+    public function delegationMember()
+    {
+        return $this->belongsTo(DelegationMember::class, 'delegation_member_id');
     }
 
     /**

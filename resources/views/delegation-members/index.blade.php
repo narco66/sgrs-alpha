@@ -80,9 +80,16 @@
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="avatar-sm bg-{{ $member->role === 'head' ? 'danger' : 'primary' }} bg-opacity-10 rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                                <i class="bi bi-person text-{{ $member->role === 'head' ? 'danger' : 'primary' }}"></i>
-                                            </div>
+                                            @if($member->photo_url)
+                                                <img src="{{ $member->photo_url }}"
+                                                     alt="{{ $member->full_name }}"
+                                                     class="rounded-circle me-2"
+                                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                            @else
+                                                <div class="avatar-sm bg-{{ $member->role === 'head' ? 'danger' : 'primary' }} bg-opacity-10 rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-person text-{{ $member->role === 'head' ? 'danger' : 'primary' }}"></i>
+                                                </div>
+                                            @endif
                                             <div>
                                                 <div class="fw-semibold">
                                                     @if($member->title)

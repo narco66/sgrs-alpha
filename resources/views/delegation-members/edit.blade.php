@@ -47,7 +47,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('delegations.members.update', [$delegation, $member]) }}" method="POST">
+                    <form action="{{ route('delegations.members.update', [$delegation, $member]) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
 
@@ -90,6 +90,26 @@
                                        value="{{ old('email', $member->email) }}"
                                        placeholder="exemple@email.com">
                                 @error('email')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Photo --}}
+                            <div class="col-md-6">
+                                <label for="photo" class="form-label">Photo (facultatif)</label>
+                                <input type="file"
+                                       name="photo"
+                                       id="photo"
+                                       accept="image/*"
+                                       class="form-control @error('photo') is-invalid @enderror">
+                                <small class="text-muted">Formats acceptés : JPG, PNG, max 2 Mo.</small>
+                                @if($member->photo_url)
+                                    <div class="mt-2 d-flex align-items-center">
+                                        <img src="{{ $member->photo_url }}" alt="Photo actuelle" class="rounded-circle me-2" style="width: 48px; height: 48px; object-fit: cover;">
+                                        <small class="text-muted">Photo actuelle</small>
+                                    </div>
+                                @endif
+                                @error('photo')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

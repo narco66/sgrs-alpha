@@ -89,13 +89,14 @@ class NotificationService
 
         // 1) Notifier le nouvel utilisateur (email + notification interne)
         if ($user instanceof User) {
-            $user->notify(new UserCreatedNotification($user));
+            // notifyNow pour éviter la dépendance au worker de queue
+            $user->notifyNow(new UserCreatedNotification($user));
         }
 
         // 2) Informer les rôles DSI / admin
         $adminRecipients = User::role(['super-admin', 'admin', 'dsi'])->get();
         foreach ($adminRecipients as $recipient) {
-            $recipient->notify(new UserCreatedNotification($user));
+            $recipient->notifyNow(new UserCreatedNotification($user));
         }
 
         $this->logNotification('user_created', [
@@ -119,13 +120,13 @@ class NotificationService
         // Notifier tous les rôles d'administration
         $adminRecipients = User::role(['super-admin', 'admin', 'dsi'])->get();
         foreach ($adminRecipients as $recipient) {
-            // Notification interne pour la cloche + notification email existante si souhaitée
-            $recipient->notify(new NewUserPendingValidation($user));
-            $recipient->notify(new UserPendingApprovalNotification($user));
+            // Notifications internes + email, envoyées immédiatement
+            $recipient->notifyNow(new NewUserPendingValidation($user));
+            $recipient->notifyNow(new UserPendingApprovalNotification($user));
         }
 
         // Accusé de réception à l'utilisateur
-        $user->notify(new UserRegistrationReceivedNotification($user));
+        $user->notifyNow(new UserRegistrationReceivedNotification($user));
 
         $this->logNotification('user_registration_requested', [
             'user_id' => $user->id,
@@ -139,7 +140,7 @@ class NotificationService
 
         // Notification à l'utilisateur pour l’informer d’une mise à jour de son profil.
         if ($user instanceof User) {
-            $user->notify(new UserUpdatedNotification($user));
+            $user->notifyNow(new UserUpdatedNotification($user));
         }
 
         $this->logNotification('user_updated', [
@@ -157,11 +158,11 @@ class NotificationService
         $actor = $event->actor;
 
         // Notification à l'utilisateur validé
-        $user->notify(new UserAccountApprovedNotification($user));
+        $user->notifyNow(new UserAccountApprovedNotification($user));
 
         // Récapitulatif pour l'administrateur ayant validé
         if ($actor instanceof User) {
-            $actor->notify(new UserAccountApprovedAdminNotification($user, $actor));
+            $actor->notifyNow(new UserAccountApprovedAdminNotification($user, $actor));
         }
 
         $this->logNotification('user_account_approved', [
@@ -180,7 +181,7 @@ class NotificationService
         $reason = $event->reason;
 
         // Notification à l'utilisateur rejeté
-        $user->notify(new UserAccountRejectedNotification($user, $reason));
+        $user->notifyNow(new UserAccountRejectedNotification($user, $reason));
 
         $this->logNotification('user_account_rejected', [
             'user_id'  => $user->id,
@@ -200,7 +201,7 @@ class NotificationService
 
         // Notification interne à l'organisateur (rappel de création).
         if ($meeting->organizer) {
-            $meeting->organizer->notify(new MeetingInvitationNotification($meeting));
+            $meeting->organizer->notifyNow(new MeetingInvitationNotification($meeting));
         }
 
         $this->logNotification('meeting_created', [
@@ -216,7 +217,7 @@ class NotificationService
 
         // Notification interne simple à l'organisateur pour confirmer la modification.
         if ($meeting->organizer) {
-            $meeting->organizer->notify(new MeetingReminderNotification($meeting));
+            $meeting->organizer->notifyNow(new MeetingReminderNotification($meeting));
         }
 
         $this->logNotification('meeting_updated', [
@@ -246,7 +247,7 @@ class NotificationService
 
         // Notifier aussi l'organisateur en interne
         if ($meeting->organizer) {
-            $meeting->organizer->notify(new MeetingCancellationNotification($meeting));
+            $meeting->organizer->notifyNow(new MeetingCancellationNotification($meeting));
         }
 
         $this->logNotification('meeting_cancelled', [
@@ -298,7 +299,7 @@ class NotificationService
 
         // Exemple : si passage à un statut d'archivage, notifier l'organisateur.
         if (in_array($event->newStatus, ['archived', 'archivee', 'archivée'], true) && $meeting->organizer) {
-            $meeting->organizer->notify(new MeetingReminderNotification(
+            $meeting->organizer->notifyNow(new MeetingReminderNotification(
                 new Meeting([
                     'title'       => 'Archivage de la réunion',
                     'description' => 'La réunion "' . $meeting->title . '" a été archivée.',
@@ -321,7 +322,7 @@ class NotificationService
 
         // Informer l'organisateur de la réponse d'un participant interne.
         if ($meeting->organizer && $participant->user) {
-            $meeting->organizer->notify(
+            $meeting->organizer->notifyNow(
                 new ParticipantResponseReminderNotification($meeting)
             );
         }
@@ -345,7 +346,7 @@ class NotificationService
 
         // Notifier l'organisateur de la réunion liée (si existante) qu'un document a été déposé.
         if ($document->meeting && $document->meeting->organizer) {
-            $document->meeting->organizer->notify(new DocumentAddedNotification($document));
+            $document->meeting->organizer->notifyNow(new DocumentAddedNotification($document));
         }
 
         $this->logNotification('document_submitted', [
@@ -361,7 +362,7 @@ class NotificationService
 
         // 1) Toujours notifier l'uploader (auteur) du document (chaîne complète).
         if ($document->uploader) {
-            $document->uploader->notify(new DocumentValidationNotification($document, $validation));
+            $document->uploader->notifyNow(new DocumentValidationNotification($document, $validation));
         }
 
         // 2) Notifier le niveau suivant de validation en respectant la chaîne
@@ -372,7 +373,7 @@ class NotificationService
             $recipients = $this->recipientsForValidationLevel($nextLevel);
 
             foreach ($recipients as $user) {
-                $user->notify(new DocumentValidationNotification($document, $validation));
+                $user->notifyNow(new DocumentValidationNotification($document, $validation));
             }
         }
 

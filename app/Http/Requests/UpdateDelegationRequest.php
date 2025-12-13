@@ -27,9 +27,17 @@ class UpdateDelegationRequest extends FormRequest
     public function rules(): array
     {
         $delegation = $this->route('delegation');
+        $delegationId = $delegation instanceof Delegation ? $delegation->id : null;
+        $meetingId = $this->input('meeting_id', $delegation?->meeting_id);
 
         return [
-            'title'                     => ['required', 'string', 'max:255'],
+            'title'                     => [
+                'required',
+                'string',
+                'max:255',
+                // Unicité du titre par réunion, en ignorant la délégation courante
+                'unique:delegations,title,' . $delegationId . ',id,meeting_id,' . $meetingId,
+            ],
             'entity_type'               => ['required', 'string', 'in:' . implode(',', \App\Models\Delegation::entityTypes())],
             'country_code'              => ['nullable', 'string', 'max:3'],
             'country'                   => ['nullable', 'string', 'max:100'],
@@ -41,6 +49,7 @@ class UpdateDelegationRequest extends FormRequest
             'head_of_delegation_name'   => ['nullable', 'string', 'max:255'],
             'head_of_delegation_position' => ['nullable', 'string', 'max:255'],
             'head_of_delegation_email'  => ['nullable', 'email', 'max:255'],
+            'head_of_delegation_photo'  => ['nullable', 'image', 'max:2048'],
             'meeting_id'                => ['required', 'exists:reunions,id'],
             'participation_status'       => ['nullable', 'string', 'in:' . implode(',', \App\Models\Delegation::participationStatuses())],
             'notes'                     => ['nullable', 'string'],
@@ -48,16 +57,18 @@ class UpdateDelegationRequest extends FormRequest
             
             // Membres de la délégation (validation simplifiée - validation manuelle dans le contrôleur)
             'members'                   => ['nullable', 'array'],
-            'members.*.id'              => ['nullable', 'exists:membres_delegations,id'],
+            // Utiliser le nom de table standardisé après renommage : delegation_members
+            'members.*.id'              => ['nullable', 'exists:delegation_members,id'],
             'members.*.first_name'      => ['nullable', 'string', 'max:255'],
             'members.*.last_name'       => ['nullable', 'string', 'max:255'],
             'members.*.email'           => ['nullable', 'email', 'max:255'],
+            'members.*.photo'           => ['nullable', 'image', 'max:2048'],
             'members.*.phone'           => ['nullable', 'string', 'max:50'],
             'members.*.position'        => ['nullable', 'string', 'max:255'],
             'members.*.title'           => ['nullable', 'string', 'max:255'],
             'members.*.institution'     => ['nullable', 'string', 'max:255'],
             'members.*.department'      => ['nullable', 'string', 'max:255'],
-            'members.*.role'            => ['nullable', 'string', 'in:head,member,expert,observer,secretary'],
+            'members.*.role'            => ['nullable', 'string', 'in:head,member,expert,observer,secretary,advisor,interpreter'],
             'members.*.status'          => ['nullable', 'string', 'in:invited,confirmed,present,absent,excused'],
             'members.*.notes'           => ['nullable', 'string'],
         ];

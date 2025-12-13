@@ -19,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\DelegationMemberController;
+use App\Http\Controllers\BadgeVerificationController;
 
 
 // Page d'accueil publique
@@ -227,5 +228,9 @@ Route::middleware(['auth', 'verified'])
         Route::post('participant-requests/{participantRequest}/reject', [\App\Http\Controllers\ParticipantRequestController::class, 'reject'])
             ->name('participant-requests.reject');
     });
+
+// Vérification de badge par QR-code / code-barres (publique, sans login)
+Route::get('badges/verify/{uuid}', [BadgeVerificationController::class, 'show'])
+    ->name('badges.verify');
 
 require __DIR__.'/auth.php';

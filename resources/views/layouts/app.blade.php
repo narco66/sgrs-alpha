@@ -925,27 +925,33 @@
             <div class="flex-grow-1 d-flex flex-column">
                 {{-- TOPBAR --}}
                 <nav class="navbar navbar-expand-md navbar-light bg-white sgrs-topbar">
-                    <div class="container-fluid">
-                        {{-- Bouton burger (mobile) --}}
-                        <button class="navbar-toggler d-md-none"
-                                type="button"
-                                data-bs-toggle="offcanvas"
-                                data-bs-target="#offcanvasSidebar"
-                                aria-controls="offcanvasSidebar">
-                            <span class="navbar-toggler-icon"></span>
-                        </button>
+                    <div class="container-fluid d-flex justify-content-between align-items-center">
+                        {{-- Zone gauche : logo + titre + burger mobile --}}
+                        <div class="d-flex align-items-center gap-2">
+                            {{-- Bouton burger (mobile uniquement) --}}
+                            <button class="navbar-toggler d-md-none me-1"
+                                    type="button"
+                                    data-bs-toggle="offcanvas"
+                                    data-bs-target="#offcanvasSidebar"
+                                    aria-controls="offcanvasSidebar">
+                                <span class="navbar-toggler-icon"></span>
+                            </button>
 
-                        {{-- Branding mobile --}}
-                        <span class="navbar-brand d-md-none">
-                            <img src="{{ asset('images/ceeac-logo.png') }}"
-                                 alt="CEEAC"
-                                 width="28"
-                                 height="28"
-                                 class="me-1 rounded-circle">
-                            SGRS-CEEAC
-                        </span>
+                            {{-- Branding principal (logo + titre appli) --}}
+                            <a href="{{ route('dashboard') }}" class="navbar-brand d-flex align-items-center mb-0">
+                                <img src="{{ asset('images/logo-ceeac.png') }}"
+                                     alt="CEEAC"
+                                     width="40"
+                                     height="40"
+                                     class="me-2 rounded-circle">
+                                <span class="fw-semibold fs-4">
+                                    SGRS-CEEAC : Système de Gestion des Réunions Statutaires
+                                </span>
+                            </a>
+                        </div>
 
-                        <div class="ms-auto d-flex align-items-center gap-3">
+                        {{-- Zone droite : cloche de notification + menu utilisateur --}}
+                        <div class="d-flex align-items-center gap-3">
                             {{-- Notifications (cloche) --}}
                             @auth
                                 @php
@@ -1079,10 +1085,10 @@
                     aria-labelledby="offcanvasSidebarLabel">
                     <div class="offcanvas-header">
                         <h5 class="offcanvas-title" id="offcanvasSidebarLabel">
-                            <img src="{{ asset('images/ceeac-logo.png') }}"
+                            <img src="{{ asset('images/logo-ceeac.png') }}"
                                 alt="CEEAC"
-                                width="28"
-                                height="28"
+                                width="32"
+                                height="32"
                                 class="me-2 rounded-circle">
                             SGRS-CEEAC
                         </h5>

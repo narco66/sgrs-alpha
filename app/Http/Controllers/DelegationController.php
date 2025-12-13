@@ -10,6 +10,8 @@ use App\Models\Meeting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Contrôleur pour la gestion des délégations institutionnelles
@@ -119,6 +121,12 @@ class DelegationController extends Controller
                 $data['participation_status'] = 'invited';
             }
 
+            // Gestion de la photo du chef de délégation
+            if ($request->hasFile('head_of_delegation_photo')) {
+                $path = $request->file('head_of_delegation_photo')->store('delegations/heads', 'public');
+                $data['head_of_delegation_photo_path'] = $path;
+            }
+
             $delegation = Delegation::create($data);
             
             if (app()->environment('local', 'testing')) {
@@ -150,10 +158,19 @@ class DelegationController extends Controller
                         }
                         
                         // Vérifier que le rôle est valide selon l'enum de la migration
-                        $validRoles = ['head', 'member', 'expert', 'observer', 'secretary'];
+                        $validRoles = ['head', 'member', 'expert', 'observer', 'secretary', 'advisor', 'interpreter'];
                         $memberRole = !empty($memberData['role']) ? $memberData['role'] : 'member';
                         if (!in_array($memberRole, $validRoles)) {
                             $memberRole = 'member'; // Valeur par défaut valide
+                        }
+
+                        // Gestion éventuelle de la photo pour ce membre
+                        $photoPath = null;
+                        if ($request->hasFile("members.$index.photo")) {
+                            $photoFile = $request->file("members.$index.photo");
+                            if ($photoFile && $photoFile->isValid()) {
+                                $photoPath = $photoFile->store('delegation_members', 'public');
+                            }
                         }
                         
                         DelegationMember::create([
@@ -161,6 +178,7 @@ class DelegationController extends Controller
                             'first_name' => $firstName,
                             'last_name' => $lastName,
                             'email' => $email,
+                            'photo_path' => $photoPath,
                             'phone' => !empty($memberData['phone']) ? trim($memberData['phone']) : null,
                             'position' => !empty($memberData['position']) ? trim($memberData['position']) : null,
                             'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
@@ -168,6 +186,7 @@ class DelegationController extends Controller
                             'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
                             'role' => $memberRole,
                             'status' => $memberStatus,
+                            'badge_uuid' => (string) Str::uuid(),
                             'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
                         ]);
                     }
@@ -305,6 +324,16 @@ class DelegationController extends Controller
             $data = $request->validated();
             $membersData = $request->input('members', []);
 
+            // Gestion de la photo du chef de délégation (remplacement éventuel)
+            if ($request->hasFile('head_of_delegation_photo')) {
+                if ($delegation->head_of_delegation_photo_path) {
+                    Storage::disk('public')->delete($delegation->head_of_delegation_photo_path);
+                }
+
+                $path = $request->file('head_of_delegation_photo')->store('delegations/heads', 'public');
+                $data['head_of_delegation_photo_path'] = $path;
+            }
+
             $delegation->update($data);
 
             // Récupérer les IDs des membres existants qui doivent être conservés
@@ -316,7 +345,7 @@ class DelegationController extends Controller
             // Compter les membres existants avant suppression
             $existingMembersCount = $delegation->members()->count();
 
-            foreach ($membersData as $memberData) {
+            foreach ($membersData as $formIndex => $memberData) {
                 if (isset($memberData['id'])) {
                     // Membre existant à mettre à jour
                     $existingMemberIds[] = $memberData['id'];
@@ -325,6 +354,7 @@ class DelegationController extends Controller
                     $email = trim($memberData['email'] ?? '');
 
                     if (!empty($firstName) && !empty($lastName) && !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $memberData['__form_index'] = $formIndex;
                         $updatedMembers[] = $memberData;
                     }
                 } else {
@@ -334,6 +364,7 @@ class DelegationController extends Controller
                     $email = trim($memberData['email'] ?? '');
 
                     if (!empty($firstName) && !empty($lastName) && !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $memberData['__form_index'] = $formIndex;
                         $newMembers[] = $memberData;
                     }
                 }
@@ -346,25 +377,37 @@ class DelegationController extends Controller
 
             // Mettre à jour les membres existants
             foreach ($updatedMembers as $memberData) {
+                $update = [
+                    'first_name' => trim($memberData['first_name']),
+                    'last_name' => trim($memberData['last_name']),
+                    'email' => trim($memberData['email']),
+                    'phone' => !empty($memberData['phone']) ? trim($memberData['phone']) : null,
+                    'position' => !empty($memberData['position']) ? trim($memberData['position']) : null,
+                    'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
+                    'institution' => !empty($memberData['institution']) ? trim($memberData['institution']) : null,
+                    'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
+                    'role' => in_array($memberData['role'] ?? 'member', ['head', 'member', 'expert', 'observer', 'secretary']) 
+                        ? ($memberData['role'] ?? 'member') 
+                        : 'member',
+                    'status' => in_array($memberData['status'] ?? 'invited', ['invited', 'confirmed', 'present', 'absent', 'excused']) 
+                        ? ($memberData['status'] ?? 'invited') 
+                        : 'invited',
+                    'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
+                ];
+
+                // Gestion de la photo si fournie dans le formulaire
+                $formIndex = $memberData['__form_index'] ?? null;
+                if ($formIndex !== null && $request->hasFile("members.$formIndex.photo")) {
+                    $photoFile = $request->file("members.$formIndex.photo");
+                    if ($photoFile && $photoFile->isValid()) {
+                        $photoPath = $photoFile->store('delegation_members', 'public');
+                        $update['photo_path'] = $photoPath;
+                    }
+                }
+
                 DelegationMember::where('id', $memberData['id'])
                     ->where('delegation_id', $delegation->id)
-                    ->update([
-                        'first_name' => trim($memberData['first_name']),
-                        'last_name' => trim($memberData['last_name']),
-                        'email' => trim($memberData['email']),
-                        'phone' => !empty($memberData['phone']) ? trim($memberData['phone']) : null,
-                        'position' => !empty($memberData['position']) ? trim($memberData['position']) : null,
-                        'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
-                        'institution' => !empty($memberData['institution']) ? trim($memberData['institution']) : null,
-                        'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
-                        'role' => in_array($memberData['role'] ?? 'member', ['head', 'member', 'expert', 'observer', 'secretary']) 
-                            ? ($memberData['role'] ?? 'member') 
-                            : 'member',
-                        'status' => in_array($memberData['status'] ?? 'invited', ['invited', 'confirmed', 'present', 'absent', 'excused']) 
-                            ? ($memberData['status'] ?? 'invited') 
-                            : 'invited',
-                        'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
-                    ]);
+                    ->update($update);
             }
 
             // Créer les nouveaux membres
@@ -377,10 +420,20 @@ class DelegationController extends Controller
                 }
                 
                 // Vérifier que le rôle est valide selon l'enum de la migration
-                $validRoles = ['head', 'member', 'expert', 'observer', 'secretary'];
+                $validRoles = ['head', 'member', 'expert', 'observer', 'secretary', 'advisor', 'interpreter'];
                 $memberRole = !empty($memberData['role']) ? $memberData['role'] : 'member';
                 if (!in_array($memberRole, $validRoles)) {
                     $memberRole = 'member'; // Valeur par défaut valide
+                }
+
+                // Gestion éventuelle de la photo pour ce nouveau membre
+                $photoPath = null;
+                $formIndex = $memberData['__form_index'] ?? null;
+                if ($formIndex !== null && $request->hasFile("members.$formIndex.photo")) {
+                    $photoFile = $request->file("members.$formIndex.photo");
+                    if ($photoFile && $photoFile->isValid()) {
+                        $photoPath = $photoFile->store('delegation_members', 'public');
+                    }
                 }
                 
                 DelegationMember::create([
@@ -388,6 +441,7 @@ class DelegationController extends Controller
                     'first_name' => trim($memberData['first_name']),
                     'last_name' => trim($memberData['last_name']),
                     'email' => trim($memberData['email']),
+                    'photo_path' => $photoPath,
                     'phone' => !empty($memberData['phone']) ? trim($memberData['phone']) : null,
                     'position' => !empty($memberData['position']) ? trim($memberData['position']) : null,
                     'title' => !empty($memberData['title']) ? trim($memberData['title']) : null,
@@ -395,6 +449,7 @@ class DelegationController extends Controller
                     'department' => !empty($memberData['department']) ? trim($memberData['department']) : null,
                     'role' => $memberRole,
                     'status' => $memberStatus,
+                    'badge_uuid' => (string) Str::uuid(),
                     'notes' => !empty($memberData['notes']) ? trim($memberData['notes']) : null,
                 ]);
             }

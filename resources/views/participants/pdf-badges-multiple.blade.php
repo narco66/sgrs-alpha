@@ -109,6 +109,20 @@
             overflow: hidden;
         }
         
+        .photo-wrapper {
+            width: 100%;
+            margin-bottom: 1mm;
+        }
+
+        .participant-photo {
+            width: 14mm;
+            height: 14mm;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 0.4mm solid #e2e8f0;
+            margin-bottom: 1mm;
+        }
+
         .participant-name {
             font-size: 11pt;
             font-weight: bold;
@@ -280,6 +294,21 @@
     
     // Position/Fonction
     $position = $participant->position ?? '';
+
+    // Photo du participant (membre réel ou chef de délégation)
+    $photoPath = null;
+    if (property_exists($participant, 'photo_path') && !empty($participant->photo_path)) {
+        $candidate = public_path('storage/' . ltrim($participant->photo_path, '/'));
+        if (file_exists($candidate)) {
+            $photoPath = $candidate;
+        }
+    } elseif (isset($delegation) && !empty($delegation->head_of_delegation_photo_path) && $badgeType === 'head') {
+        // Fallback : utiliser la photo du chef définie sur la délégation
+        $candidate = public_path('storage/' . ltrim($delegation->head_of_delegation_photo_path, '/'));
+        if (file_exists($candidate)) {
+            $photoPath = $candidate;
+        }
+    }
 @endphp
 <div class="badge-container type-{{ $badgeType }} {{ $isLastBadge ? 'last-badge' : '' }}">
     {{-- En-tête avec logo --}}
@@ -292,6 +321,11 @@
     
     {{-- Corps du badge --}}
     <div class="badge-body">
+        @if($photoPath)
+            <div class="photo-wrapper">
+                <img src="{{ $photoPath }}" alt="{{ $fullName }}" class="participant-photo">
+            </div>
+        @endif
         <div class="participant-name">{{ $fullName }}</div>
         
         @if(!empty($position))

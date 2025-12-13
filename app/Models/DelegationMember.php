@@ -25,6 +25,7 @@ class DelegationMember extends Model
         'first_name',
         'last_name',
         'email',
+        'photo_path',
         'phone',
         'position',
         'title',
@@ -32,6 +33,8 @@ class DelegationMember extends Model
         'department',
         'role',
         'status',
+        'badge_uuid',
+        'badge_code_payload',
         'confirmed_at',
         'checked_in_at',
         'notes',
@@ -48,11 +51,14 @@ class DelegationMember extends Model
      |  CONSTANTES MÉTIER
      |============================================================
     */
-    public const ROLE_HEAD = 'head';
-    public const ROLE_MEMBER = 'member';
-    public const ROLE_EXPERT = 'expert';
-    public const ROLE_OBSERVER = 'observer';
-    public const ROLE_SECRETARY = 'secretary';
+    public const ROLE_HEAD        = 'head';
+    public const ROLE_MEMBER      = 'member';
+    public const ROLE_EXPERT      = 'expert';
+    public const ROLE_OBSERVER    = 'observer';
+    public const ROLE_SECRETARY   = 'secretary';
+    public const ROLE_ADVISOR     = 'advisor';
+    public const ROLE_INTERPRETER = 'interpreter';
+    public const ROLE_DEPUTY      = 'deputy';
 
     public static function roles(): array
     {
@@ -62,6 +68,9 @@ class DelegationMember extends Model
             self::ROLE_EXPERT,
             self::ROLE_OBSERVER,
             self::ROLE_SECRETARY,
+            self::ROLE_ADVISOR,
+            self::ROLE_INTERPRETER,
+            self::ROLE_DEPUTY,
         ];
     }
 
@@ -93,6 +102,18 @@ class DelegationMember extends Model
     public function getFullNameAttribute(): string
     {
         return trim("{$this->title} {$this->first_name} {$this->last_name}");
+    }
+
+    /**
+     * URL publique de la photo du membre, si disponible.
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (empty($this->photo_path)) {
+            return null;
+        }
+
+        return asset('storage/' . ltrim($this->photo_path, '/'));
     }
 
     /* ============================================================

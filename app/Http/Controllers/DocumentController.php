@@ -220,10 +220,22 @@ class DocumentController extends Controller
 
     public function destroy(Document $document)
     {
+        // Supprimer les fichiers physiques de toutes les versions avant la suppression logique
+        $document->loadMissing('versions');
+
+        // Fichier principal actuel
         if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
             Storage::disk('public')->delete($document->file_path);
         }
 
+        // Fichiers des anciennes versions
+        foreach ($document->versions as $version) {
+            if ($version->file_path && Storage::disk('public')->exists($version->file_path)) {
+                Storage::disk('public')->delete($version->file_path);
+            }
+        }
+
+        // Suppression logique (SoftDeletes) ; les versions sont supprimées en cascade côté base
         $document->delete();
 
         return redirect()

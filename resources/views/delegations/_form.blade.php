@@ -114,7 +114,7 @@
         </div>
 
         <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Chef de délégation (nom)</label>
                 <input type="text" 
                        name="head_of_delegation_name" 
@@ -125,7 +125,7 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Fonction du chef</label>
                 <input type="text" 
                        name="head_of_delegation_position" 
@@ -136,13 +136,33 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Email du chef</label>
                 <input type="email" 
                        name="head_of_delegation_email" 
                        class="form-control @error('head_of_delegation_email') is-invalid @enderror"
                        value="{{ old('head_of_delegation_email', $delegation->head_of_delegation_email ?? '') }}">
                 @error('head_of_delegation_email')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Photo du chef (facultatif)</label>
+                <input type="file"
+                       name="head_of_delegation_photo"
+                       accept="image/*"
+                       class="form-control @error('head_of_delegation_photo') is-invalid @enderror">
+                <small class="text-muted d-block">JPG/PNG, max 2 Mo.</small>
+                @if(!empty($delegation->head_of_delegation_photo_url))
+                    <div class="mt-2 d-flex align-items-center">
+                        <img src="{{ $delegation->head_of_delegation_photo_url }}"
+                             alt="Photo actuelle"
+                             class="rounded-circle me-2"
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                        <small class="text-muted">Photo actuelle</small>
+                    </div>
+                @endif
+                @error('head_of_delegation_photo')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
@@ -282,6 +302,11 @@
             <div class="col-md-6">
                 <label class="form-label">Téléphone</label>
                 <input type="text" name="members[__INDEX__][phone]" class="form-control" placeholder="+242 06 123 456 78">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Photo (facultatif)</label>
+                <input type="file" name="members[__INDEX__][photo]" accept="image/*" class="form-control">
+                <small class="text-muted">Formats acceptés : JPG, PNG, max 2 Mo.</small>
             </div>
             <div class="col-md-6">
                 <label class="form-label">Fonction / Position</label>

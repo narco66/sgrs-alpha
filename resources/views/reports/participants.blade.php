@@ -5,7 +5,7 @@
     <div>
         <h4 class="mb-1">Statistiques sur les participants</h4>
         <p class="text-muted mb-0">
-            Taux de participation global et par service.
+            Taux de participation global et par délégation / entité.
         </p>
     </div>
     <div class="btn-group">
@@ -75,17 +75,28 @@
     </div>
 </div>
 
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0">
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white">
-        <h6 class="mb-0">Statistiques par service</h6>
+        <h6 class="mb-0">Statistiques par délégation / entité</h6>
     </div>
     <div class="card-body">
-        @if($byService->count() > 0)
+        @if($byDelegation->count() > 0)
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Service</th>
+                            <th>Délégation / entité</th>
                             <th class="text-end">Invitations</th>
                             <th class="text-end">Confirmées</th>
                             <th class="text-end">Présences</th>
@@ -93,9 +104,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($byService as $item)
+                        @foreach($byDelegation as $item)
                             <tr>
-                                <td><strong>{{ $item->service }}</strong></td>
+                                <td><strong>{{ $item->delegation_title }}</strong></td>
                                 <td class="text-end">{{ $item->total_invitations }}</td>
                                 <td class="text-end">{{ $item->confirmed }}</td>
                                 <td class="text-end">{{ $item->attended }}</td>

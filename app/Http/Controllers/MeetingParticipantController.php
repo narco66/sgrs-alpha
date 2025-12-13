@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Events\ParticipantRsvpUpdated;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
+use App\Models\Delegation;
+use App\Models\DelegationMember;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -16,19 +18,22 @@ class MeetingParticipantController extends Controller
     }
 
     /**
-     * Liste + gestion des participants d’une réunion.
+     * Vue des participants d’une réunion.
+     *
+     * Phase 2 : cette page est désormais basée sur les délégations / membres
+     * (et non plus sur participants_reunions) pour refléter le modèle CEEAC.
+     * La gestion fine (ajout / édition de membres) se fait dans le module délégations.
      */
     public function index(Meeting $meeting)
     {
         $this->authorize('view', $meeting);
 
-        $participants = $meeting->participants()->with('user')->orderBy('id')->get();
-        $users = User::orderBy('name')->get();
+        // Chargement des délégations et de leurs membres pour cette réunion
+        $meeting->load(['delegations.members']);
 
         return view('meetings.participants.index', [
-            'meeting'      => $meeting,
-            'participants' => $participants,
-            'users'        => $users,
+            'meeting'     => $meeting,
+            'delegations' => $meeting->delegations,
         ]);
     }
 
